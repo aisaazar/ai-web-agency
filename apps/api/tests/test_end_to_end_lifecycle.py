@@ -6,6 +6,7 @@ import anyio
 import httpx
 
 from agency.api import create_app
+from agency.db.auth_models import AuditLog
 from agency.db.models import Org
 from agency.db.session import create_all, create_session_factory
 from agency.providers.deploy import LocalStaticDeploymentProvider
@@ -273,5 +274,15 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
 
     session = create_session_factory(database_url)()
     site_after = session.query(Site).filter(Site.org_id == org.id, Site.client_id == UUID(client_id)).one()
+    actions = {row.action for row in session.query(AuditLog).filter(AuditLog.org_id == org.id).all()}
     session.close()
     assert site_after.current_build_hash == build_hash
+    assert {
+        "approval.facts_approved",
+        "approval.research_approved",
+        "approval.content_approved",
+        "approval.publish_approved",
+        "deployment.preview_created",
+        "deployment.published",
+        "deployment.rolled_back",
+    } <= actions

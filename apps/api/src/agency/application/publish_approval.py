@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from agency.db.models import Approval, Artifact, Deploy
 from agency.repositories import ApprovalRepository, PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 
 
@@ -67,4 +68,13 @@ def approve_publish(
         approved_by=approved_by,
     ))
     pipeline.state = transition(pipeline.state, "PREVIEW_APPROVED").to_state
+    record_audit(
+        session,
+        org_id=org_id,
+        actor=approved_by,
+        action="approval.publish_approved",
+        entity_type="artifact",
+        entity_id=str(artifact.id),
+        after={"gate": "PUBLISH", "decision": "approved", "client_id": str(client_id)},
+    )
     return artifact

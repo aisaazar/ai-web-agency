@@ -11,6 +11,7 @@ from agency.domain.pipeline_definition import is_valid_transition
 from agency.providers.deploy import BuildBundle, DeploymentProvider
 from agency.providers.deployment_registry import get_deployment_provider
 from agency.repositories import PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 
 REQUIRED_VALIDATION_CHECKS = frozenset({
@@ -129,6 +130,15 @@ def create_preview(
     )
     session.add(record)
     session.flush()
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action="deployment.preview_created",
+        entity_type="deploy",
+        entity_id=str(record.id),
+        after={"client_id": str(client_id), "build_hash": version.build_hash, "url": record.url},
+    )
     return record
 
 
@@ -214,6 +224,15 @@ def publish_site(
     site.current_build_hash = version.build_hash
     site.live_url = promoted.url
     site.status = "live"
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action="deployment.published",
+        entity_type="deploy",
+        entity_id=str(record.id),
+        after={"client_id": str(client_id), "build_hash": version.build_hash, "url": record.url},
+    )
     return record
 
 
@@ -295,4 +314,13 @@ def rollback_site(
     current_site.current_build_hash = target_version.build_hash
     current_site.live_url = promoted.url
     current_site.status = "live"
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action="deployment.rolled_back",
+        entity_type="deploy",
+        entity_id=str(record.id),
+        after={"client_id": str(client_id), "build_hash": target_version.build_hash, "url": record.url},
+    )
     return record

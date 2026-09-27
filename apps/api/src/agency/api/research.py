@@ -10,6 +10,7 @@ from agency.api.dependencies import get_db
 from agency.db.models import Approval, Artifact
 from agency.repositories import ApprovalRepository
 from agency.repositories.pipeline_repository import PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 from agency.services.research_service import run_research
 
@@ -66,6 +67,15 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             approved_by=payload.approved_by,
         ))
         pipeline.state = transition(pipeline.state, "RESEARCH_APPROVED").to_state
+        record_audit(
+            session,
+            org_id=payload.org_id,
+            actor=payload.approved_by,
+            action="approval.research_approved",
+            entity_type="artifact",
+            entity_id=str(artifact.id),
+            after={"gate": "RESEARCH", "decision": "approved", "client_id": str(payload.client_id)},
+        )
         return {"artifact_id": artifact.id, "state": pipeline.state}
 
     return router

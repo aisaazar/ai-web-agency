@@ -7,6 +7,7 @@ from agency.api.approval_schemas import FactsApprovalRequest, FactsApprovalRespo
 from agency.db.models import Approval, Artifact, Client, ClientFact
 from agency.db.workflow_models import PipelineRun
 from agency.repositories import ApprovalRepository, ArtifactRepository, PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 
 
@@ -69,6 +70,15 @@ def approve_facts(session: Session, payload: FactsApprovalRequest) -> FactsAppro
 
     next_state = transition(run.state, "FACTS_APPROVED").to_state
     run.state = next_state
+    record_audit(
+        session,
+        org_id=payload.org_id,
+        actor=payload.approved_by,
+        action="approval.facts_approved",
+        entity_type="artifact",
+        entity_id=str(artifact.id),
+        after={"gate": "FACTS", "decision": "approved", "client_id": str(client.id)},
+    )
     return FactsApprovalResponse(
         client_id=client.id,
         artifact_id=artifact.id,
