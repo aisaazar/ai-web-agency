@@ -22,6 +22,9 @@ class TavilyResearchProvider:
     search_endpoint: str = "https://api.tavily.com/search"
     extract_endpoint: str = "https://api.tavily.com/extract"
     timeout_seconds: float = 30.0
+    max_response_bytes: int = 1_000_000
+    max_excerpt_chars: int = 4_000
+    max_page_chars: int = 20_000
 
     def _api_key(self) -> str:
         key = os.getenv("TAVILY_API_KEY")
@@ -41,13 +44,17 @@ class TavilyResearchProvider:
         )
         try:
             with urlopen(request, timeout=self.timeout_seconds) as response:
-                raw = response.read().decode("utf-8")
+                raw_bytes = response.read(self.max_response_bytes + 1)
         except HTTPError as exc:
             raise TavilyProviderError(f"Tavily HTTP {exc.code} from {endpoint}") from exc
         except URLError as exc:
             raise TavilyProviderError(f"Tavily request failed for {endpoint}: {exc.reason}") from exc
+        if len(raw_bytes) > self.max_response_bytes:
+            raise TavilyProviderError(
+                f"Tavily response exceeds {self.max_response_bytes} byte limit"
+            )
         try:
-            data = json.loads(raw)
+            data = json.loads(raw_bytes.decode("utf-8"))
         except json.JSONDecodeError as exc:
             raise TavilyProviderError(f"Tavily returned invalid JSON from {endpoint}") from exc
         if not isinstance(data, dict):
@@ -77,7 +84,7 @@ class TavilyResearchProvider:
             excerpt = item.get("content")
             if not all(isinstance(value, str) and value.strip() for value in (url, title, excerpt)):
                 raise TavilyProviderError("Tavily search result is missing url/title/content")
-            sources.append(Source(url=url, title=title, excerpt=excerpt))
+            sources.append(Source(url=url, title=title, excerpt=excerpt[: self.max_excerpt_chars]))
         return sources
 
     def fetch(self, url: str) -> FetchedPage:
@@ -101,4 +108,12 @@ class TavilyResearchProvider:
             raise TavilyProviderError("Tavily extract result is missing url")
         if not isinstance(text, str) or not text.strip():
             raise TavilyProviderError("Tavily extract result is missing content")
-        return FetchedPage(url=extracted_url, title=url, text=text)
+        try:
+            validate_fetch_url(extracted_url)
+        except UnsafeFetchURL as exc:
+            raise TavilyProviderError(str(exc)) from exc
+        return FetchedPage(
+            url=extracted_url,
+            title=url,
+            text=text[: self.max_page_chars],
+        )
