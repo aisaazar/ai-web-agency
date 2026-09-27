@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { mockDashboardData } from "../lib/data";
+import { fetchDashboard } from "../lib/data";
 
 export default async function OverviewPage() {
+  const dashboard = await fetchDashboard();
   const [clients, artifacts, deployments, leads] = await Promise.all([
-    mockDashboardData.clients(), mockDashboardData.artifacts(),
-    mockDashboardData.deployments(), mockDashboardData.leads(),
+    dashboard.clients(), dashboard.artifacts(), dashboard.deployments(), dashboard.leads(),
   ]);
   return <>
-    <div className="topbar"><div><div className="eyebrow">Operations</div><h1>Agency Overview</h1></div><div className="muted">Local preview data</div></div>
+    <div className="topbar"><div><div className="eyebrow">Operations</div><h1>Agency Overview</h1></div><div className="muted">Live API data</div></div>
     <div className="grid kpis">
       {[
         ["Clients",clients.length],["Artifacts",artifacts.length],["Deployments",deployments.length],

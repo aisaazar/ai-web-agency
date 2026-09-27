@@ -21,6 +21,7 @@ def create_session_factory(database_url: str = "sqlite:///agency.db") -> session
 
 def create_all(database_url: str = "sqlite:///agency.db") -> None:
     from agency.db.base import Base
+    from agency.db import auth_models  # noqa: F401
     from agency.db import models  # noqa: F401
 
     engine = create_engine(database_url, future=True)

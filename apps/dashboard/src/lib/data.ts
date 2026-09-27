@@ -40,29 +40,30 @@ export interface DashboardDataAdapter {
   deployments(): Promise<DashboardDeployment[]>;
   leads(): Promise<DashboardLead[]>;
 }
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const ORG_ID = process.env.AGENCY_ORG_ID;
 
-const clients: DashboardClient[] = [
-  { id: "client-1", name: "Zahnbalance Nürnberg", category: "dental", state: "PREVIEW_READY", updatedAt: "2026-09-27" },
-  { id: "client-2", name: "Nordlicht Physiotherapie", category: "health", state: "CONTENT_APPROVED", updatedAt: "2026-09-26" },
-];
+export async function fetchDashboard(): Promise<DashboardDataAdapter> {
+  const query = ORG_ID ? `?org_id=${encodeURIComponent(ORG_ID)}` : "";
+  const response = await fetch(`${API_BASE_URL}/v1/dashboard${query}`, {
+    cache: "no-store",
+  });
 
-const artifacts: DashboardArtifact[] = [
-  { id: "art-1", type: "business_facts", revision: 1, status: "approved" },
-  { id: "art-2", type: "content_model", revision: 3, status: "approved" },
-  { id: "art-3", type: "site_build", revision: 1, status: "active", buildHash: "8e7f…a91c" },
-];
+  if (!response.ok) {
+    throw new Error(`Dashboard API request failed: ${response.status}`);
+  }
 
-const deployments: DashboardDeployment[] = [
-  { id: "dep-1", client: "Zahnbalance Nürnberg", provider: "local_static", status: "preview", url: "local://8e7f…a91c" },
-];
+  const data = await response.json() as {
+    clients: DashboardClient[];
+    artifacts: DashboardArtifact[];
+    deployments: DashboardDeployment[];
+    leads: DashboardLead[];
+  };
 
-const leads: DashboardLead[] = [
-  { id: "lead-1", client: "Zahnbalance Nürnberg", name: "Maria K.", status: "new", createdAt: "2026-09-27 10:22" },
-];
-
-export const mockDashboardData: DashboardDataAdapter = {
-  async clients() { return clients; },
-  async artifacts() { return artifacts; },
-  async deployments() { return deployments; },
-  async leads() { return leads; },
-};
+  return {
+    clients: async () => data.clients,
+    artifacts: async () => data.artifacts,
+    deployments: async () => data.deployments,
+    leads: async () => data.leads,
+  };
+}

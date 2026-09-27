@@ -2,7 +2,9 @@ import anyio
 import httpx
 
 from agency.api import create_app
+from agency.db.auth_models import AuditLog, Membership, User
 from agency.db.models import Client, Org, Site
+from agency.services.auth_service import create_session, hash_password
 from agency.db.session import create_all, create_session_factory
 
 
@@ -77,12 +79,23 @@ def test_lead_status_history_is_persisted(tmp_path):
         "consent": True,
     })
     lead_id = created.json()["id"]
+    session = create_session_factory(database_url)()
+    user = User(email="owner@example.com", password_hash=hash_password("correct horse battery staple"))
+    session.add(user)
+    session.flush()
+    session.add(Membership(org_id=site.org_id, user_id=user.id, role="owner"))
+    session.flush()
+    token = create_session(session, user)
+    session.commit()
+    session.close()
+    cookie = f"agency_session={token}"
 
     changed = _request(
         app,
         "PATCH",
         f"/v1/leads/{lead_id}/status?org_id={site.org_id}",
-        json={"status": "contacted", "actor": "owner", "note": "Called client"},
+        headers={"Cookie": cookie},
+        json={"status": "contacted", "actor": "spoofed", "note": "Called client"},
     )
     assert changed.status_code == 200
     assert changed.json()["status"] == "contacted"
@@ -98,6 +111,12 @@ def test_lead_status_history_is_persisted(tmp_path):
     assert payload[0]["to_status"] == "new"
     assert payload[1]["from_status"] == "new"
     assert payload[1]["to_status"] == "contacted"
+    assert payload[1]["actor"] == str(user.id)
+
+    audit_session = create_session_factory(database_url)()
+    audit = audit_session.query(AuditLog).filter_by(action="lead.status_updated").one()
+    assert audit.actor == str(user.id)
+    audit_session.close()
 
 
 def test_lead_status_is_org_scoped(tmp_path):

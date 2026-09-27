@@ -15,6 +15,7 @@ from agency.api.schemas import (
     LeadSubmissionOut,
 )
 from agency.db.models import Client, LeadEvent, LeadSubmission, Site
+from agency.services.audit_service import record_audit
 from agency.providers.notify import Notification, NotifyProvider, get_notify_provider
 from agency.repositories import LeadRepository
 
@@ -131,6 +132,16 @@ def update_lead_status(
         actor=update.actor,
         note=update.note,
     ))
+    record_audit(
+        session,
+        org_id=org_id,
+        actor=update.actor,
+        action="lead.status_updated",
+        entity_type="lead",
+        entity_id=str(lead.id),
+        before={"status": previous},
+        after={"status": update.status, "note": update.note},
+    )
     return LeadSubmissionOut(
         id=lead.id,
         status=lead.status,

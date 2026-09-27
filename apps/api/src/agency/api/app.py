@@ -7,9 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
 
 from agency.api.approvals import build_router as build_approvals_router
+from agency.api.audit import build_router as build_audit_router
+from agency.api.auth import build_router as build_auth_router
 from agency.api.build import build_router as build_build_router
 from agency.api.content import build_router as build_content_router
 from agency.api.deploy import build_router as build_deploy_router
+from agency.api.dashboard import build_router as build_dashboard_router
 from agency.api.design import build_router as build_design_router
 from agency.api.intake import build_router as build_intake_router
 from agency.api.leads import build_router as build_leads_router
@@ -34,6 +37,8 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(build_auth_router(session_factory))
+    app.include_router(build_audit_router(session_factory))
     app.include_router(build_intake_router(session_factory))
     app.include_router(build_approvals_router(session_factory))
     app.include_router(build_research_router(session_factory))
@@ -43,6 +48,7 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     app.include_router(build_publish_router(session_factory))
     app.include_router(build_deploy_router(session_factory))
     app.include_router(build_leads_router(session_factory))
+    app.include_router(build_dashboard_router(session_factory))
     return app
 
 

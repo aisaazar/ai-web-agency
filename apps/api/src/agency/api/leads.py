@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import role_dependency
 from agency.api.dependencies import get_db
 from agency.api.schemas import (
     LeadEventOut,
@@ -26,6 +27,7 @@ from agency.services.lead_service import (
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     router = APIRouter(prefix="/v1/leads", tags=["leads"])
     db_dependency = get_db(session_factory)
+    lead_editor = role_dependency(session_factory, {"owner", "operator"})
 
     @router.post("", response_model=LeadSubmissionOut, status_code=201)
     def submit_lead(payload: LeadSubmissionIn, session: Session = Depends(db_dependency)):
@@ -49,12 +51,18 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         org_id: UUID,
         payload: LeadStatusUpdateIn,
         session: Session = Depends(db_dependency),
+        membership=Depends(lead_editor),
     ):
+        update = LeadStatusUpdateIn(
+            status=payload.status,
+            actor=str(membership.user_id),
+            note=payload.note,
+        )
         return update_lead_status(
             session,
             org_id=org_id,
             lead_id=lead_id,
-            update=payload,
+            update=update,
         )
 
     @router.get("/{lead_id}/events", response_model=list[LeadEventOut])
