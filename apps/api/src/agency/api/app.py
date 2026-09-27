@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
 
+from agency.api.agent import build_router as build_agent_router
 from agency.api.approvals import build_router as build_approvals_router
 from agency.api.audit import build_router as build_audit_router
 from agency.api.auth import build_router as build_auth_router
@@ -55,6 +56,7 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(build_agent_router(session_factory))
     app.include_router(build_auth_router(session_factory))
     app.include_router(build_audit_router(session_factory))
     app.include_router(build_intake_router(session_factory))
