@@ -156,3 +156,39 @@ def test_new_lead_notification_runs_after_commit(tmp_path, monkeypatch):
     assert response.status_code == 201
     assert len(provider.messages) == 1
     assert "Jane Doe" in provider.messages[0].body
+
+
+
+def test_lead_list_and_csv_export_are_org_scoped(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    site = _seed(database_url)
+    app = create_app(database_url)
+    created = _post(app, {
+        "site_id": str(site.id),
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "message": "Please call me.",
+        "consent": True,
+    })
+    assert created.status_code == 201
+
+    listed = _request(app, "GET", f"/v1/leads?org_id={site.org_id}")
+    assert listed.status_code == 200
+    assert listed.json()[0]["email"] == "jane@example.com"
+
+    exported = _request(app, "GET", f"/v1/leads/export.csv?org_id={site.org_id}")
+    assert exported.status_code == 200
+    assert "text/csv" in exported.headers["content-type"]
+    assert "Jane Doe" in exported.text
+    assert "Content-Disposition" in exported.headers
+
+    from agency.db.models import Org
+    session = create_session_factory(database_url)()
+    other_org = Org(name="Other", slug="other")
+    session.add(other_org)
+    session.commit()
+    session.close()
+
+    other_list = _request(app, "GET", f"/v1/leads?org_id={other_org.id}")
+    assert other_list.status_code == 200
+    assert other_list.json() == []

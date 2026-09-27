@@ -22,6 +22,15 @@ class LeadRepository:
             )
         )
 
+    def list_all(self) -> list[LeadSubmission]:
+        return list(
+            self.session.scalars(
+                select(LeadSubmission)
+                .where(LeadSubmission.org_id == self.org_id)
+                .order_by(LeadSubmission.created_at.desc())
+            )
+        )
+
     def get(self, lead_id) -> LeadSubmission | None:
         return self.session.scalar(
             select(LeadSubmission).where(

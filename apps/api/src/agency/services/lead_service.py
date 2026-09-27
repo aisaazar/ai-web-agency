@@ -1,4 +1,4 @@
-"""Lead capture and lifecycle use cases."""
+﻿"""Lead capture and lifecycle use cases."""
 from __future__ import annotations
 
 import os
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from agency.api.schemas import (
     LeadEventOut,
+    LeadListItemOut,
     LeadStatusUpdateIn,
     LeadSubmissionIn,
     LeadSubmissionOut,
@@ -135,6 +136,43 @@ def update_lead_status(
         status=lead.status,
         received_at=lead.created_at,
     )
+
+
+def list_leads(session: Session, *, org_id) -> list[LeadListItemOut]:
+    return [
+        LeadListItemOut(
+            id=lead.id,
+            client_id=lead.client_id,
+            site_id=lead.site_id,
+            name=lead.name,
+            email=lead.email,
+            phone=lead.phone,
+            message=lead.message,
+            status=lead.status,
+            spam_score=lead.spam_score,
+            received_at=lead.created_at,
+        )
+        for lead in LeadRepository(session, org_id).list_all()
+    ]
+
+
+def export_leads_csv(session: Session, *, org_id) -> str:
+    import csv
+    from io import StringIO
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        ["id", "client_id", "site_id", "name", "email", "phone",
+         "message", "status", "spam_score", "received_at"]
+    )
+    for lead in LeadRepository(session, org_id).list_all():
+        writer.writerow(
+            [lead.id, lead.client_id, lead.site_id, lead.name, lead.email,
+             lead.phone or "", lead.message, lead.status, lead.spam_score,
+             lead.created_at.isoformat()]
+        )
+    return output.getvalue()
 
 
 def list_lead_events(

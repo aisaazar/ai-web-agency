@@ -29,6 +29,19 @@ class LeadSubmissionOut(BaseModel):
     received_at: datetime
 
 
+class LeadListItemOut(BaseModel):
+    id: UUID
+    client_id: UUID
+    site_id: UUID
+    name: str
+    email: str
+    phone: str | None
+    message: str
+    status: str
+    spam_score: int
+    received_at: datetime
+
+
 LeadStatus = Literal["new", "contacted", "qualified", "won", "lost"]
 
 
