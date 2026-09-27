@@ -129,3 +129,27 @@ def test_mutating_authenticated_request_requires_csrf(tmp_path):
     blocked = anyio.run(flow)
     assert blocked.status_code == 403
     assert blocked.json()["detail"] == "CSRF token required"
+
+
+def test_login_rate_limit_blocks_repeated_failures(tmp_path):
+    app = create_app(f"sqlite:///{tmp_path / 'rate-limit.db'}")
+
+    async def flow():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            responses = []
+            for _ in range(6):
+                responses.append(
+                    await client.post(
+                        "/v1/auth/login",
+                        json={
+                            "email": "rate-limit@example.com",
+                            "password": "wrong password",
+                        },
+                    )
+                )
+            return responses
+
+    responses = anyio.run(flow)
+    assert [response.status_code for response in responses] == [401, 401, 401, 401, 401, 429]
+    assert responses[-1].headers["retry-after"] == "900"
