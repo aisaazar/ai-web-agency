@@ -1,3 +1,6 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
 export type PipelineState =
   | "INTAKE" | "FACTS_APPROVED" | "RESEARCH_APPROVED" | "CONTENT_APPROVED"
   | "DESIGN_APPROVED" | "PREVIEW_READY" | "PREVIEW_APPROVED" | "LIVE";
@@ -127,11 +130,18 @@ export async function fetchDashboard(): Promise<DashboardDataAdapter> {
     return mockDashboardData;
   }
 
+  const sessionCookie = (await cookies()).get("agency_session")?.value;
   const response = await fetch(
     `${API_BASE_URL}/v1/dashboard/overview?org_id=${encodeURIComponent(ORG_ID)}`,
-    { cache: "no-store" },
+    {
+      cache: "no-store",
+      headers: sessionCookie ? { Cookie: `agency_session=${sessionCookie}` } : undefined,
+    },
   );
 
+  if (response.status === 401) {
+    redirect("/login");
+  }
   if (!response.ok) {
     throw new Error(`Dashboard API request failed: ${response.status}`);
   }
