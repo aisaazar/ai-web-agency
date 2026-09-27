@@ -2,14 +2,14 @@
 
 ## Security & compliance checklist (all blocking for v1)
 
-- [ ] No LLM output rendered as raw HTML; markdown through an allowlist sanitizer; never `dangerouslySetInnerHTML`
-- [ ] Fetched/scraped content is untrusted: never drives tool calls, deploy actions, file paths or SQL
+- [x] LLM output is plain-text content only; no HTML/markdown rendering surface and no `dangerouslySetInnerHTML`
+- [x] Fetched/scraped content is untrusted input data only: it is validated/bounded, never drives tool calls, deploy actions, file paths or SQL
 - [x] Fetch provider: scheme allowlist, block private/loopback/link-local IPs, cap redirects + body size, timeout
 - [ ] One scoped repository layer; cross-tenant test suite; every query carries `org_id`
 - [ ] Per-site deploy token scoped to one project; no org-wide token inside a client build; no secrets in build output
 - [x] Studio auth: argon2/bcrypt hashes, 2FA-ready, secure + httpOnly cookies, CSRF, rate limits, session rotation
 - [x] LLM budget caps per org **and** per client; bounded retries; hard fail when budget is exceeded
-- [ ] Generated sites: strict CSP, no third-party trackers by default, **no Google Fonts CDN** (German court rulings)
+- [x] Generated sites: strict CSP, no third-party trackers by default, **no Google Fonts CDN** (German court rulings); enforced by build output generation + validation
 - [ ] DE: Impressum, Datenschutz, cookie consent, AVV with processors, EU data residency where personal data is involved
 - [ ] Health/legal claims: banned-claim validator + human approval; customer agent must not give medical advice
 - [x] Backups: nightly DB dump + artifact payloads; one restore drill actually performed
