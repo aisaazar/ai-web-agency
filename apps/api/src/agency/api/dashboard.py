@@ -6,14 +6,20 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.dashboard_schemas import DashboardOverviewOut
 from agency.api.dependencies import get_db
 from agency.db.models import Artifact, Client, Deploy, LeadSubmission, Org, Site, SiteVersion
 from agency.db.workflow_models import PipelineRun
+from agency.services.dashboard_service import get_overview
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     router = APIRouter(prefix="/v1/dashboard", tags=["dashboard"])
     db_dependency = get_db(session_factory)
+
+    @router.get("/overview", response_model=DashboardOverviewOut)
+    def overview(org_id: UUID, session: Session = Depends(db_dependency)):
+        return get_overview(session, org_id=org_id)
 
     @router.get("")
     def dashboard(org_id: UUID | None = None, session: Session = Depends(db_dependency)):

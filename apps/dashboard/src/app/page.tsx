@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { fetchDashboard } from "../lib/data";
 
+export const dynamic = "force-dynamic";
+
+
 export default async function OverviewPage() {
   const dashboard = await fetchDashboard();
   const [clients, artifacts, deployments, leads] = await Promise.all([

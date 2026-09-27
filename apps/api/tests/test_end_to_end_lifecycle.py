@@ -247,11 +247,14 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
     assert leads.status_code == 200
     assert leads.json()[0]["name"] == "Maria E2E"
 
-    dashboard = _request(app, "GET", f"/v1/dashboard?org_id={org_id}")
+    dashboard = _request(app, "GET", f"/v1/dashboard/overview?org_id={org_id}")
     assert dashboard.status_code == 200
     data = dashboard.json()
+    assert data["counts"] == {"clients": 1, "artifacts": 5, "deployments": 2, "new_leads": 1}
     assert data["clients"][0]["state"] == "LIVE"
+    assert data["clients"][0]["current_build_hash"] == build_hash
     assert data["leads"][0]["name"] == "Maria E2E"
+    assert data["leads"][0]["email"] == "maria@example.com"
     assert data["deployments"][0]["status"] == "live"
 
     rollback = _request(

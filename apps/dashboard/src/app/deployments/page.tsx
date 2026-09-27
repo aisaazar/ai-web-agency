@@ -1,5 +1,8 @@
 import { fetchDashboard } from "../../lib/data";
 
+export const dynamic = "force-dynamic";
+
+
 export default async function DeploymentsPage() {
   const dashboard = await fetchDashboard();
   const rows = await dashboard.deployments();
