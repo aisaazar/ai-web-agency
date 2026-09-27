@@ -33,6 +33,9 @@ for (const requiredHeader of [
 for (const marker of ["default-src 'self'", "object-src 'none'", "frame-ancestors 'none'", "connect-src 'self'"]) {
   if (!csp.includes(marker)) throw new Error("incomplete CSP: " + marker);
 }
+if (csp.includes("'unsafe-inline'") || !/script-src[^;]*'sha256-/u.test(csp)) {
+  throw new Error("CSP must use script hashes instead of unsafe-inline");
+}
 const files = await readdir(path.join(root, "out"), { recursive: true });
 const banned = ["fonts.googleapis.com", "fonts.gstatic.com", "googletagmanager.com", "google-analytics.com", "connect.facebook.net"];
 for (const rel of files.filter((item) => item.endsWith(".html"))) {

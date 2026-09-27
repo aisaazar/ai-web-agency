@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -21,12 +22,34 @@ function originOf(value, name) {
 const origins = [originOf(agentApi, "NEXT_PUBLIC_AGENCY_AGENT_API_URL"),
   originOf(leadApi, "NEXT_PUBLIC_AGENCY_LEAD_API_URL")].filter(Boolean);
 
+function inlineScriptHashes() {
+  const hashes = new Set();
+  function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(file);
+      else if (entry.isFile() && file.endsWith(".html")) {
+        const html = fs.readFileSync(file, "utf8");
+        const pattern = /<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi;
+        for (const match of html.matchAll(pattern)) {
+          const digest = crypto.createHash("sha256").update(match[1], "utf8").digest("base64");
+          hashes.add("'sha256-" + digest + "'");
+        }
+      }
+    }
+  }
+  if (fs.existsSync(outDir)) walk(outDir);
+  return [...hashes].sort();
+}
+
+fs.mkdirSync(outDir, { recursive: true });
+const scriptSources = ["'self'", ...inlineScriptHashes()];
 const connectSrc = ["'self'", ...origins];
 const contentSecurityPolicy = [
   "default-src 'self'", "base-uri 'self'", "form-action 'self'",
   "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:",
-  "font-src 'self'", "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'", `connect-src ${connectSrc.join(" ")}`,
+  "font-src 'self'", "style-src 'self'",
+  `script-src ${scriptSources.join(" ")}`, `connect-src ${connectSrc.join(" ")}`,
 ].join("; ");
 
 const config = {
