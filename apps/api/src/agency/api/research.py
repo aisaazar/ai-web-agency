@@ -1,11 +1,12 @@
 """Research execution and approval endpoints."""
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dependencies import get_db
 from agency.db.models import Approval, Artifact
 from agency.repositories import ApprovalRepository
@@ -36,7 +37,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.post("", status_code=201)
-    def research(payload: ResearchRequest, session: Session = Depends(db_dependency)):
+    def research(payload: ResearchRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             artifact = run_research(
                 session,
@@ -49,7 +51,12 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @router.post("/approve", status_code=200)
-    def approve(payload: ResearchApprovalRequest, session: Session = Depends(db_dependency)):
+    def approve(payload: ResearchApprovalRequest, request: Request, session: Session = Depends(db_dependency)):
+        membership = require_role_or_legacy(
+            session, request, org_id=payload.org_id, roles={"owner", "reviewer"}
+        )
+        if membership is not None:
+            payload = payload.model_copy(update={"approved_by": str(membership.user_id)})
         pipeline = PipelineRepository(session, payload.org_id).latest_for_client(payload.client_id)
         artifact = session.scalar(select(Artifact).where(
             Artifact.id == payload.artifact_id,

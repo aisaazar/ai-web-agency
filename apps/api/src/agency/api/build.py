@@ -1,10 +1,11 @@
 """Static site build and preview-gate endpoint."""
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dependencies import get_db
 from agency.services.site_build_service import SiteBuildError, build_site
 
@@ -22,7 +23,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.post("/site", status_code=201)
-    def build(payload: SiteBuildRequest, session: Session = Depends(db_dependency)):
+    def build(payload: SiteBuildRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             version = build_site(
                 session,

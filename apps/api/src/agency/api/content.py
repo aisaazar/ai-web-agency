@@ -2,10 +2,11 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dependencies import get_db
 from agency.application.content_approval import ContentApprovalError, approve_content
 from agency.services.content_ai_service import AIContentGenerationError, generate_content_with_llm
@@ -35,7 +36,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.post("", status_code=201)
-    def generate(payload: ContentGenerationRequest, session: Session = Depends(db_dependency)):
+    def generate(payload: ContentGenerationRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             if payload.mode == "llm":
                 artifact = generate_content_with_llm(
@@ -64,7 +66,12 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @router.post("/approve", status_code=200)
-    def approve(payload: ContentApprovalRequest, session: Session = Depends(db_dependency)):
+    def approve(payload: ContentApprovalRequest, request: Request, session: Session = Depends(db_dependency)):
+        membership = require_role_or_legacy(
+            session, request, org_id=payload.org_id, roles={"owner", "reviewer"}
+        )
+        if membership is not None:
+            payload = payload.model_copy(update={"approved_by": str(membership.user_id)})
         try:
             artifact = approve_content(
                 session,

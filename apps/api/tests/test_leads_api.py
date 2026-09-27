@@ -106,6 +106,7 @@ def test_lead_status_history_is_persisted(tmp_path):
         app,
         "GET",
         f"/v1/leads/{lead_id}/events?org_id={site.org_id}",
+        headers={"Cookie": cookie},
     )
     assert events.status_code == 200
     payload = events.json()

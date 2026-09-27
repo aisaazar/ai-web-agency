@@ -1,10 +1,11 @@
 """Deployment endpoints."""
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dependencies import get_db
 from agency.providers.deployment_registry import get_deployment_provider
 from agency.services.deploy_service import DeployError, create_preview, publish_site, rollback_site
@@ -37,7 +38,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.post("/preview", status_code=201)
-    def preview(payload: PreviewRequest, session: Session = Depends(db_dependency)):
+    def preview(payload: PreviewRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             deploy = create_preview(
                 session,
@@ -58,7 +60,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @router.post("/publish", status_code=201)
-    def publish(payload: PublishRequest, session: Session = Depends(db_dependency)):
+    def publish(payload: PublishRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             deploy = publish_site(
                 session,
@@ -78,7 +81,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @router.post("/rollback", status_code=201)
-    def rollback(payload: RollbackRequest, session: Session = Depends(db_dependency)):
+    def rollback(payload: RollbackRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             deploy = rollback_site(
                 session,

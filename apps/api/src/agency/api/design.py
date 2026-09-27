@@ -1,10 +1,11 @@
 """Deterministic design endpoint."""
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dependencies import get_db
 from agency.services.design_service import DesignError, design_site
 
@@ -23,7 +24,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.post("", status_code=201)
-    def design(payload: DesignRequest, session: Session = Depends(db_dependency)):
+    def design(payload: DesignRequest, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
         try:
             artifact = design_site(
                 session,

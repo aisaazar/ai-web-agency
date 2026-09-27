@@ -2,11 +2,11 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, sessionmaker
 
-from agency.api.auth_dependencies import role_dependency
+from agency.api.auth_dependencies import require_role_or_legacy, role_dependency
 from agency.api.dependencies import get_db
 from agency.api.schemas import (
     LeadEventOut,
@@ -34,11 +34,13 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         return create_lead(session, payload)
 
     @router.get("", response_model=list[LeadListItemOut])
-    def list_all(org_id: UUID, session: Session = Depends(db_dependency)):
+    def list_all(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         return list_leads(session, org_id=org_id)
 
     @router.get("/export.csv")
-    def export_csv(org_id: UUID, session: Session = Depends(db_dependency)):
+    def export_csv(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         return Response(
             content=export_leads_csv(session, org_id=org_id),
             media_type="text/csv; charset=utf-8",
@@ -69,8 +71,10 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     def events(
         lead_id: UUID,
         org_id: UUID,
+        request: Request,
         session: Session = Depends(db_dependency),
     ):
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         return list_lead_events(
             session,
             org_id=org_id,

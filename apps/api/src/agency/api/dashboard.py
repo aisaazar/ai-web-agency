@@ -2,10 +2,11 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from agency.api.auth_dependencies import require_role_or_legacy
 from agency.api.dashboard_schemas import DashboardOverviewOut
 from agency.api.dependencies import get_db
 from agency.db.models import Artifact, Client, Deploy, LeadSubmission, Org, Site, SiteVersion
@@ -18,11 +19,14 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     db_dependency = get_db(session_factory)
 
     @router.get("/overview", response_model=DashboardOverviewOut)
-    def overview(org_id: UUID, session: Session = Depends(db_dependency)):
+    def overview(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         return get_overview(session, org_id=org_id)
 
     @router.get("")
-    def dashboard(org_id: UUID | None = None, session: Session = Depends(db_dependency)):
+    def dashboard(org_id: UUID | None = None, request: Request = None, session: Session = Depends(db_dependency)):
+        if org_id is not None:
+            require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         if org_id is None:
             org_ids = list(session.scalars(select(Org.id).order_by(Org.created_at)))
             if len(org_ids) > 1:
@@ -30,6 +34,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             if not org_ids:
                 return {"clients": [], "artifacts": [], "deployments": [], "leads": []}
             org_id = org_ids[0]
+
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
 
         clients = list(session.scalars(
             select(Client).where(Client.org_id == org_id).order_by(Client.name)
