@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "tokens": "node scripts/build-design-tokens.mjs",
     "prebuild": "node scripts/build-design-tokens.mjs && node scripts/gate/validate-content.mjs",
-    "build": "next build",
+    "build": "next build && node scripts/write-security-headers.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },

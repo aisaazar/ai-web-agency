@@ -77,6 +77,20 @@ def _persist_build_bundle(build_hash: str) -> Path:
     return destination
 
 
+_SECRET_ENV_MARKERS = ("API_KEY", "_TOKEN", "_SECRET", "PASSWORD", "_CREDENTIAL")
+
+
+def _build_environment() -> dict[str, str]:
+    """Give the static-site build only non-secret process configuration."""
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not any(marker in key.upper() for marker in _SECRET_ENV_MARKERS)
+    }
+    env["PRODUCTION_BUILD"] = "1"
+    return env
+
+
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, str]:
     result = subprocess.run(
         command,
@@ -137,7 +151,8 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         json.dumps(content.payload_json, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    env = {**os.environ, "CONTENT_FILE": content_file.name, "PRODUCTION_BUILD": "1"}
+    env = _build_environment()
+    env["CONTENT_FILE"] = content_file.name
     try:
         passed_build, build_detail = _run(["npm", "run", "build:site"], cwd=REPO_ROOT, env=env)
     finally:
