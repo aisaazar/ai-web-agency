@@ -1,0 +1,199 @@
+import json
+from pathlib import Path
+from uuid import UUID
+
+import anyio
+import httpx
+
+from agency.api import create_app
+from agency.db import create_all, create_session_factory
+from agency.db.models import Artifact, BuildValidation, Client, Org, SiteVersion
+from agency.db.workflow_models import PipelineRun
+
+
+FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
+
+
+def _post(app, path, payload):
+    async def request():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.post(path, json=payload)
+
+    return anyio.run(request)
+
+
+def _seed(database_url):
+    create_all(database_url)
+    factory = create_session_factory(database_url)
+    session = factory()
+    org = Org(name="Agency", slug="agency")
+    session.add(org)
+    session.flush()
+    client = Client(org_id=org.id, name="Dental", slug="dental", category="dental")
+    session.add(client)
+    session.flush()
+    facts = Artifact(
+        org_id=org.id,
+        artifact_type="business_facts",
+        schema_version="1.0.0",
+        payload_json={"client_id": str(client.id), "facts": []},
+    )
+    session.add(facts)
+    session.flush()
+
+    content_data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    content = Artifact(
+        org_id=org.id,
+        artifact_type="content_model",
+        schema_version="1.0.0",
+        payload_json=content_data,
+        input_artifact_id=facts.id,
+    )
+    design = Artifact(
+        org_id=org.id,
+        artifact_type="design_plan",
+        schema_version="1.0.0",
+        payload_json={
+            "client_id": str(client.id),
+            "template_id": "_template-base",
+            "template_version": "1.0.0",
+            "design_preset_id": "health",
+        },
+    )
+    session.add_all([content, design, PipelineRun(
+        org_id=org.id,
+        client_id=client.id,
+        state="DESIGN_APPROVED",
+    )])
+    session.commit()
+    session.close()
+    return org, client, content.id, design.id
+
+
+def test_site_build_endpoint_reaches_preview_ready(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+
+    def fake_run(command, *, cwd, env):
+        return True, f"mocked: {' '.join(command)}"
+
+    import agency.services.site_build_service as build_module
+    monkeypatch.setattr(build_module, "_run", fake_run)
+
+    app = create_app(database_url)
+    response = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert response.status_code == 201
+    body = response.json()
+    assert UUID(body["site_version_id"])
+    assert len(body["build_hash"]) == 64
+    assert body["state"] == "PREVIEW_READY"
+
+    factory = create_session_factory(database_url)
+    session = factory()
+    version = session.get(SiteVersion, UUID(body["site_version_id"]))
+    validations = session.query(BuildValidation).filter(
+        BuildValidation.site_version_id == version.id
+    ).all()
+
+    assert version is not None
+    assert len(validations) == 11
+    assert all(item.passed for item in validations)
+    assert {item.check_name for item in validations} == {
+        "content_schema", "facts_provenance", "claims_policy",
+        "required_legal_pages", "typecheck", "next_build",
+        "linkcheck", "a11y_budget", "playwright_smoke",
+        "seo_manifest", "perf_budget",
+    }
+    session.close()
+
+
+def test_publish_approval_binds_to_exact_build_artifact(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+
+    import agency.services.site_build_service as build_module
+    monkeypatch.setattr(
+        build_module,
+        "_run",
+        lambda command, *, cwd, env: (True, f"mocked: {' '.join(command)}"),
+    )
+
+    app = create_app(database_url)
+    built = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+    assert built.status_code == 201
+
+    session = create_session_factory(database_url)()
+    build_artifact = session.query(Artifact).filter(
+        Artifact.org_id == org.id,
+        Artifact.artifact_type == "site_build",
+        Artifact.build_hash == built.json()["build_hash"],
+    ).one()
+    session.close()
+
+    approved = _post(app, "/v1/publish/approve", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "build_artifact_id": str(build_artifact.id),
+        "approved_by": "owner@example.com",
+    })
+    assert approved.status_code == 200
+    assert approved.json()["state"] == "PREVIEW_APPROVED"
+    assert approved.json()["build_hash"] == built.json()["build_hash"]
+
+
+def test_publish_deploy_requires_exact_build_and_reaches_live(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+
+    import agency.services.site_build_service as build_module
+    monkeypatch.setattr(
+        build_module,
+        "_run",
+        lambda command, *, cwd, env: (True, f"mocked: {' '.join(command)}"),
+    )
+
+    app = create_app(database_url)
+    built = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+    assert built.status_code == 201
+
+    session = create_session_factory(database_url)()
+    build_artifact = session.query(Artifact).filter(
+        Artifact.org_id == org.id,
+        Artifact.artifact_type == "site_build",
+        Artifact.build_hash == built.json()["build_hash"],
+    ).one()
+    session.close()
+
+    approved = _post(app, "/v1/publish/approve", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "build_artifact_id": str(build_artifact.id),
+        "approved_by": "owner@example.com",
+    })
+    assert approved.status_code == 200
+
+    deployed = _post(app, "/v1/deploys/publish", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "site_version_id": str(built.json()["site_version_id"]),
+    })
+    assert deployed.status_code == 201
+    assert deployed.json()["state"] == "LIVE"
+    assert deployed.json()["status"] == "live"

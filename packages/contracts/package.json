@@ -1,0 +1,15 @@
+{
+  "name": "@ai-web-agency/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generated content contract (JSON Schema + TypeScript). Never hand-edited.",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./src/content.ts"
+    },
+    "./content.schema.json": "./content.schema.json",
+    "./package.json": "./package.json"
+  },
+  "types": "./src/content.ts"
+}

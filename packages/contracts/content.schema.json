@@ -1,0 +1,1845 @@
+{
+  "$comment": "Generated from apps/api/src/agency/domain/content_model.py - DO NOT EDIT. Content schema version: 1.0.0. Regenerate with: npm run contracts",
+  "$defs": {
+    "Accessibility": {
+      "additionalProperties": false,
+      "properties": {
+        "accessible_toilet": {
+          "title": "Accessible Toilet",
+          "type": "boolean"
+        },
+        "elevator": {
+          "title": "Elevator",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "step_free_entrance": {
+          "title": "Step Free Entrance",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "step_free_entrance",
+        "elevator",
+        "accessible_toilet"
+      ],
+      "title": "Accessibility",
+      "type": "object"
+    },
+    "Address": {
+      "additionalProperties": false,
+      "properties": {
+        "city": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "City",
+          "type": "string"
+        },
+        "country": {
+          "const": "DE",
+          "default": "DE",
+          "title": "Country",
+          "type": "string"
+        },
+        "postal_code": {
+          "pattern": "^\\d{5}$",
+          "title": "Postal Code",
+          "type": "string"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "street": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Street",
+          "type": "string"
+        }
+      },
+      "required": [
+        "street",
+        "postal_code",
+        "city"
+      ],
+      "title": "Address",
+      "type": "object"
+    },
+    "Authority": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/Address"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "address"
+      ],
+      "title": "Authority",
+      "type": "object"
+    },
+    "Business": {
+      "additionalProperties": false,
+      "description": "Typed business truth. Every value must trace back to an approved `client_fact`.",
+      "properties": {
+        "accessibility": {
+          "$ref": "#/$defs/Accessibility"
+        },
+        "address": {
+          "$ref": "#/$defs/Address"
+        },
+        "brand_name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Brand Name",
+          "type": "string"
+        },
+        "business_type": {
+          "const": "dental_clinic",
+          "description": "Allowlisted category -> JSON-LD type mapping (deterministic, ADR-013).",
+          "title": "Business Type",
+          "type": "string"
+        },
+        "contact": {
+          "$ref": "#/$defs/ContactDetails"
+        },
+        "geo": {
+          "$ref": "#/$defs/GeoPoint"
+        },
+        "insurance": {
+          "items": {
+            "enum": [
+              "gesetzlich",
+              "privat",
+              "selbstzahler"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Insurance",
+          "type": "array"
+        },
+        "jurisdiction": {
+          "const": "DE",
+          "description": "Drives which legal pages are required (ADR-014).",
+          "title": "Jurisdiction",
+          "type": "string"
+        },
+        "legal_name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Legal Name",
+          "type": "string"
+        },
+        "map": {
+          "$ref": "#/$defs/MapInfo"
+        },
+        "opening_hours": {
+          "items": {
+            "$ref": "#/$defs/OpeningHours"
+          },
+          "minItems": 1,
+          "title": "Opening Hours",
+          "type": "array"
+        },
+        "parking": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parking"
+        },
+        "payment_methods": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Payment Methods",
+          "type": "array"
+        },
+        "price_range": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "schema.org priceRange, e.g. '$$'.",
+          "title": "Price Range"
+        },
+        "public_transport": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Public Transport"
+        },
+        "spoken_languages": {
+          "items": {
+            "enum": [
+              "de",
+              "en"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Spoken Languages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "legal_name",
+        "brand_name",
+        "business_type",
+        "jurisdiction",
+        "address",
+        "geo",
+        "contact",
+        "opening_hours",
+        "spoken_languages",
+        "insurance",
+        "payment_methods",
+        "accessibility",
+        "map"
+      ],
+      "title": "Business",
+      "type": "object"
+    },
+    "Compliance": {
+      "additionalProperties": false,
+      "properties": {
+        "legal_review_status": {
+          "description": "A German lawyer reviews Impressum/Datenschutz/disclaimer once (docs/SECURITY-AND-RISKS.md). Production mode of the gate blocks `pending`.",
+          "enum": [
+            "pending",
+            "reviewed"
+          ],
+          "title": "Legal Review Status",
+          "type": "string"
+        },
+        "medical_disclaimer": {
+          "description": "Rendered in the footer and in llms.txt. Required for health categories.",
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Medical Disclaimer",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "og_image_alt": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Og Image Alt"
+        }
+      },
+      "required": [
+        "medical_disclaimer",
+        "legal_review_status"
+      ],
+      "title": "Compliance",
+      "type": "object"
+    },
+    "ContactDetails": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "pattern": "^[^@\\s]+@[^@\\s.]+(?:\\.[^@\\s.]+)+$",
+          "title": "Email",
+          "type": "string"
+        },
+        "emergency_note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Emergency Note"
+        },
+        "emergency_phone": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Emergency Phone"
+        },
+        "phone": {
+          "description": "Human readable phone number.",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Phone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "phone",
+        "email"
+      ],
+      "title": "ContactDetails",
+      "type": "object"
+    },
+    "ContactForm": {
+      "additionalProperties": false,
+      "properties": {
+        "consent_label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Consent Label",
+          "type": "string"
+        },
+        "failure_message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Failure Message",
+          "type": "string"
+        },
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "labels": {
+          "$ref": "#/$defs/ContactFormLabels"
+        },
+        "offline_notice": {
+          "description": "Shown when no lead endpoint is configured at build time (v1 scaffold has no backend).",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Offline Notice",
+          "type": "string"
+        },
+        "submit_label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Submit Label",
+          "type": "string"
+        },
+        "submitting_label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Submitting Label",
+          "type": "string"
+        },
+        "success_message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Success Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading",
+        "intro",
+        "consent_label",
+        "submit_label",
+        "submitting_label",
+        "success_message",
+        "failure_message",
+        "offline_notice",
+        "labels"
+      ],
+      "title": "ContactForm",
+      "type": "object"
+    },
+    "ContactFormLabels": {
+      "additionalProperties": false,
+      "properties": {
+        "email": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Email",
+          "type": "string"
+        },
+        "error_email": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Error Email",
+          "type": "string"
+        },
+        "error_required": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Error Required",
+          "type": "string"
+        },
+        "error_summary": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Error Summary",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "optional_hint": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Optional Hint",
+          "type": "string"
+        },
+        "phone": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Phone",
+          "type": "string"
+        },
+        "phone_optional": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Phone Optional",
+          "type": "string"
+        },
+        "required_hint": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Required Hint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "phone",
+        "phone_optional",
+        "message",
+        "required_hint",
+        "optional_hint",
+        "error_required",
+        "error_email",
+        "error_summary"
+      ],
+      "title": "ContactFormLabels",
+      "type": "object"
+    },
+    "ContactSection": {
+      "additionalProperties": false,
+      "properties": {
+        "channels_heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Channels Heading",
+          "type": "string"
+        },
+        "form": {
+          "$ref": "#/$defs/ContactForm"
+        },
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "reply_note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply Note"
+        }
+      },
+      "required": [
+        "heading",
+        "intro",
+        "channels_heading",
+        "form"
+      ],
+      "title": "ContactSection",
+      "type": "object"
+    },
+    "ContentMeta": {
+      "additionalProperties": false,
+      "description": "Artifact-level metadata. Not rendered, except the fixture banner (see `is_fixture`).",
+      "properties": {
+        "client_slug": {
+          "description": "Client entity slug (docs/DOMAIN-MODEL.md `clients.slug`).",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Client Slug",
+          "type": "string"
+        },
+        "is_fixture": {
+          "description": "True for demo/fixture content. The build gate refuses to publish fixture content.",
+          "title": "Is Fixture",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human note. Never rendered as HTML, never part of the page copy.",
+          "title": "Note"
+        }
+      },
+      "required": [
+        "client_slug",
+        "is_fixture"
+      ],
+      "title": "ContentMeta",
+      "type": "object"
+    },
+    "Cta": {
+      "additionalProperties": false,
+      "properties": {
+        "href": {
+          "pattern": "^(/(?:[A-Za-z0-9._~!$&'()*+,;=:@%/-]*)?|#[a-z0-9-]+)$",
+          "title": "Href",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "href"
+      ],
+      "title": "Cta",
+      "type": "object"
+    },
+    "FaqItem": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Answer",
+          "type": "array"
+        },
+        "question": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "answer"
+      ],
+      "title": "FaqItem",
+      "type": "object"
+    },
+    "FaqSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intro"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/FaqItem"
+          },
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "items"
+      ],
+      "title": "FaqSection",
+      "type": "object"
+    },
+    "GeoPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Latitude",
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "title": "GeoPoint",
+      "type": "object"
+    },
+    "HeroSection": {
+      "additionalProperties": false,
+      "properties": {
+        "eyebrow": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eyebrow"
+        },
+        "headline": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Headline",
+          "type": "string"
+        },
+        "paragraphs": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paragraphs",
+          "type": "array"
+        },
+        "primary_cta": {
+          "$ref": "#/$defs/Cta"
+        },
+        "secondary_cta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "subheadline": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Subheadline",
+          "type": "string"
+        }
+      },
+      "required": [
+        "headline",
+        "subheadline",
+        "paragraphs",
+        "primary_cta"
+      ],
+      "title": "HeroSection",
+      "type": "object"
+    },
+    "Highlight": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        },
+        "icon": {
+          "enum": [
+            "tooth",
+            "sparkle",
+            "shield",
+            "clock",
+            "phone",
+            "map-pin",
+            "users",
+            "heart",
+            "child",
+            "calendar"
+          ],
+          "title": "Icon",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "icon",
+        "title",
+        "body"
+      ],
+      "title": "Highlight",
+      "type": "object"
+    },
+    "Hosting": {
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Location",
+          "type": "string"
+        },
+        "note": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "location",
+        "note"
+      ],
+      "title": "Hosting",
+      "type": "object"
+    },
+    "HoursSection": {
+      "additionalProperties": false,
+      "properties": {
+        "appointment_note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Appointment Note"
+        },
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "heading",
+        "intro"
+      ],
+      "title": "HoursSection",
+      "type": "object"
+    },
+    "Imprint": {
+      "additionalProperties": false,
+      "description": "Impressum content (DE: section 5 DDG, formerly TMG; section 18 (2) MStV).",
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/Address"
+        },
+        "contact": {
+          "$ref": "#/$defs/ContactDetails"
+        },
+        "copyright_notes": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Copyright Notes",
+          "type": "array"
+        },
+        "dispute_resolution": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dispute Resolution",
+          "type": "array"
+        },
+        "last_updated": {
+          "format": "date",
+          "title": "Last Updated",
+          "type": "string"
+        },
+        "legal_form": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Legal Form",
+          "type": "string"
+        },
+        "liability_notes": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Liability Notes",
+          "type": "array"
+        },
+        "professional_body": {
+          "$ref": "#/$defs/ProfessionalBody"
+        },
+        "professional_regulations": {
+          "items": {
+            "$ref": "#/$defs/RegulationRef"
+          },
+          "minItems": 1,
+          "title": "Professional Regulations",
+          "type": "array"
+        },
+        "professional_title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Professional Title",
+          "type": "string"
+        },
+        "professional_title_country": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Professional Title Country",
+          "type": "string"
+        },
+        "provider_name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Provider Name",
+          "type": "string"
+        },
+        "represented_by": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Represented By",
+          "type": "array"
+        },
+        "responsible_for_content": {
+          "$ref": "#/$defs/ResponsiblePerson"
+        },
+        "vat_id": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vat Id"
+        }
+      },
+      "required": [
+        "provider_name",
+        "legal_form",
+        "represented_by",
+        "address",
+        "contact",
+        "professional_title",
+        "professional_title_country",
+        "professional_body",
+        "professional_regulations",
+        "responsible_for_content",
+        "dispute_resolution",
+        "liability_notes",
+        "copyright_notes",
+        "last_updated"
+      ],
+      "title": "Imprint",
+      "type": "object"
+    },
+    "Legal": {
+      "additionalProperties": false,
+      "properties": {
+        "imprint": {
+          "$ref": "#/$defs/Imprint"
+        },
+        "privacy": {
+          "$ref": "#/$defs/Privacy"
+        }
+      },
+      "required": [
+        "imprint",
+        "privacy"
+      ],
+      "title": "Legal",
+      "type": "object"
+    },
+    "LegalSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "paragraphs": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paragraphs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "paragraphs"
+      ],
+      "title": "LegalSection",
+      "type": "object"
+    },
+    "MapInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "link_label": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Link Label",
+          "type": "string"
+        },
+        "link_url": {
+          "description": "Map opened by user click. No third-party embed and no cookie before consent.",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Link Url",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "link_url",
+        "link_label"
+      ],
+      "title": "MapInfo",
+      "type": "object"
+    },
+    "OpeningHours": {
+      "additionalProperties": false,
+      "properties": {
+        "days": {
+          "items": {
+            "enum": [
+              "Mo",
+              "Tu",
+              "We",
+              "Th",
+              "Fr",
+              "Sa",
+              "Su"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Days",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/OpeningSlot"
+          },
+          "minItems": 1,
+          "title": "Slots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "days",
+        "slots"
+      ],
+      "title": "OpeningHours",
+      "type": "object"
+    },
+    "OpeningSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "closes": {
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "title": "Closes",
+          "type": "string"
+        },
+        "opens": {
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+          "title": "Opens",
+          "type": "string"
+        }
+      },
+      "required": [
+        "opens",
+        "closes"
+      ],
+      "title": "OpeningSlot",
+      "type": "object"
+    },
+    "PageSeo": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 170,
+          "minLength": 50,
+          "title": "Description",
+          "type": "string"
+        },
+        "noindex": {
+          "default": false,
+          "title": "Noindex",
+          "type": "boolean"
+        },
+        "path": {
+          "enum": [
+            "/",
+            "/leistungen",
+            "/impressum",
+            "/datenschutz"
+          ],
+          "title": "Path",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 70,
+          "minLength": 10,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "title",
+        "description"
+      ],
+      "title": "PageSeo",
+      "type": "object"
+    },
+    "Privacy": {
+      "additionalProperties": false,
+      "description": "Datenschutzerklaerung content (DSGVO Art. 13/14).",
+      "properties": {
+        "contact_form_notice": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Contact Form Notice",
+          "type": "string"
+        },
+        "controller": {
+          "$ref": "#/$defs/ResponsiblePerson"
+        },
+        "controller_contact": {
+          "$ref": "#/$defs/ContactDetails"
+        },
+        "cookies_notice": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Cookies Notice",
+          "type": "string"
+        },
+        "data_categories": {
+          "items": {
+            "$ref": "#/$defs/LegalSection"
+          },
+          "minItems": 1,
+          "title": "Data Categories",
+          "type": "array"
+        },
+        "data_protection_officer": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data Protection Officer"
+        },
+        "hosting": {
+          "$ref": "#/$defs/Hosting"
+        },
+        "last_updated": {
+          "format": "date",
+          "title": "Last Updated",
+          "type": "string"
+        },
+        "legal_basis": {
+          "items": {
+            "$ref": "#/$defs/LegalSection"
+          },
+          "minItems": 1,
+          "title": "Legal Basis",
+          "type": "array"
+        },
+        "no_tracking_notice": {
+          "description": "States that no third-party tracker is embedded (no Google Fonts CDN, no analytics, no map iframe).",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "No Tracking Notice",
+          "type": "string"
+        },
+        "recipients": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Recipients",
+          "type": "array"
+        },
+        "retention": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Retention",
+          "type": "array"
+        },
+        "rights": {
+          "items": {
+            "$ref": "#/$defs/LegalSection"
+          },
+          "minItems": 1,
+          "title": "Rights",
+          "type": "array"
+        },
+        "supervisory_authority": {
+          "$ref": "#/$defs/Authority"
+        }
+      },
+      "required": [
+        "controller",
+        "controller_contact",
+        "hosting",
+        "legal_basis",
+        "data_categories",
+        "recipients",
+        "retention",
+        "rights",
+        "cookies_notice",
+        "contact_form_notice",
+        "no_tracking_notice",
+        "supervisory_authority",
+        "last_updated"
+      ],
+      "title": "Privacy",
+      "type": "object"
+    },
+    "ProfessionalBody": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "supervising_authority": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Supervising Authority",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "supervising_authority"
+      ],
+      "title": "ProfessionalBody",
+      "type": "object"
+    },
+    "RegulationRef": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url"
+      ],
+      "title": "RegulationRef",
+      "type": "object"
+    },
+    "ResponsiblePerson": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/Address"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "address"
+      ],
+      "title": "ResponsiblePerson",
+      "type": "object"
+    },
+    "Seo": {
+      "additionalProperties": false,
+      "properties": {
+        "pages": {
+          "description": "One entry per generated page; sitemap, canonical and meta derive from it.",
+          "items": {
+            "$ref": "#/$defs/PageSeo"
+          },
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pages"
+      ],
+      "title": "Seo",
+      "type": "object"
+    },
+    "Service": {
+      "additionalProperties": false,
+      "properties": {
+        "features": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Features",
+          "type": "array"
+        },
+        "icon": {
+          "enum": [
+            "tooth",
+            "sparkle",
+            "shield",
+            "clock",
+            "phone",
+            "map-pin",
+            "users",
+            "heart",
+            "child",
+            "calendar"
+          ],
+          "title": "Icon",
+          "type": "string"
+        },
+        "id": {
+          "description": "Anchor id and stable reference; never localised.",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "paragraphs": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paragraphs",
+          "type": "array"
+        },
+        "summary": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "paragraphs",
+        "icon"
+      ],
+      "title": "Service",
+      "type": "object"
+    },
+    "ServicesSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Service"
+          },
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "heading",
+        "intro",
+        "items"
+      ],
+      "title": "ServicesSection",
+      "type": "object"
+    },
+    "SiteIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "description": "Default meta description, also used as the llms.txt summary.",
+          "maxLength": 170,
+          "minLength": 50,
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "og_image": {
+          "anyOf": [
+            {
+              "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Same-origin path of a build-time generated OG image.",
+          "title": "Og Image"
+        },
+        "short_name": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Short Name"
+        },
+        "tagline": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Tagline",
+          "type": "string"
+        },
+        "theme_color": {
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "title": "Theme Color",
+          "type": "string"
+        },
+        "url": {
+          "description": "Canonical origin of the site, e.g. https://praxis.example",
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "tagline",
+        "url",
+        "description",
+        "theme_color"
+      ],
+      "title": "SiteIdentity",
+      "type": "object"
+    },
+    "TeamMember": {
+      "additionalProperties": false,
+      "properties": {
+        "bio": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Bio",
+          "type": "array"
+        },
+        "focus_areas": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Focus Areas",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "languages": {
+          "items": {
+            "enum": [
+              "de",
+              "en"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Languages",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "photo_url": {
+          "anyOf": [
+            {
+              "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Same-origin path to a client-approved photo; null renders initials.",
+          "title": "Photo Url"
+        },
+        "qualifications": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Qualifications",
+          "type": "array"
+        },
+        "role": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role",
+        "qualifications",
+        "languages",
+        "bio"
+      ],
+      "title": "TeamMember",
+      "type": "object"
+    },
+    "TeamSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/TeamMember"
+          },
+          "minItems": 1,
+          "title": "Members",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "intro",
+        "members"
+      ],
+      "title": "TeamSection",
+      "type": "object"
+    }
+  },
+  "$id": "ai-web-agency/contracts/content.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One immutable content artifact revision (docs/DOMAIN-MODEL.md, artifact type `content_model`).",
+  "properties": {
+    "business": {
+      "$ref": "#/$defs/Business"
+    },
+    "compliance": {
+      "$ref": "#/$defs/Compliance"
+    },
+    "contact": {
+      "$ref": "#/$defs/ContactSection"
+    },
+    "content_schema_version": {
+      "description": "Enforced, not decorative (ADR-005). Templates declare the versions they support.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Content Schema Version",
+      "type": "string"
+    },
+    "faq": {
+      "$ref": "#/$defs/FaqSection"
+    },
+    "hero": {
+      "$ref": "#/$defs/HeroSection"
+    },
+    "highlights": {
+      "items": {
+        "$ref": "#/$defs/Highlight"
+      },
+      "minItems": 1,
+      "title": "Highlights",
+      "type": "array"
+    },
+    "hours": {
+      "$ref": "#/$defs/HoursSection"
+    },
+    "legal": {
+      "$ref": "#/$defs/Legal"
+    },
+    "locale": {
+      "pattern": "^[a-z]{2}-[A-Z]{2}$",
+      "title": "Locale",
+      "type": "string"
+    },
+    "meta": {
+      "$ref": "#/$defs/ContentMeta"
+    },
+    "seo": {
+      "$ref": "#/$defs/Seo"
+    },
+    "services": {
+      "$ref": "#/$defs/ServicesSection"
+    },
+    "site": {
+      "$ref": "#/$defs/SiteIdentity"
+    },
+    "team": {
+      "$ref": "#/$defs/TeamSection"
+    }
+  },
+  "required": [
+    "content_schema_version",
+    "meta",
+    "locale",
+    "site",
+    "business",
+    "compliance",
+    "hero",
+    "highlights",
+    "services",
+    "team",
+    "hours",
+    "contact",
+    "faq",
+    "legal",
+    "seo"
+  ],
+  "title": "ContentModel",
+  "type": "object"
+}

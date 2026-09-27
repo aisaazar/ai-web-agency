@@ -1,0 +1,58 @@
+/*
+ * Global stylesheet.
+ *
+ * Tailwind v4 is configured in CSS, so this file is the only theme entry point:
+ *   - design tokens are GENERATED from sites/_presets/<id>.json (npm run tokens)
+ *   - fonts are self-hosted woff2 files in public/fonts (no Google Fonts CDN: German case law,
+ *     docs/SECURITY-AND-RISKS.md)
+ *   - base styles use the token variables directly, never hardcoded colours
+ */
+@import "tailwindcss";
+@import "./fonts.css";
+@import "../styles/design-tokens.generated.css";
+
+@layer base {
+  html {
+    color-scheme: light;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  p {
+    max-width: 72ch;
+  }
+
+  /* One visible focus style for every interactive element: colour alone is never the signal. */
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Anchors scrolled to are not hidden behind the sticky header. */
+  :target {
+    scroll-margin-top: 6rem;
+  }
+
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+
+  address {
+    font-style: normal;
+  }
+}

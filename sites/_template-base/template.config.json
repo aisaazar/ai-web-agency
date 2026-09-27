@@ -1,0 +1,9 @@
+{
+  "template_id": "template-base",
+  "template_version": "1.0.0",
+  "supported_content_schema_versions": ["1.0.0"],
+  "content_file": "content.dental-clinic.json",
+  "design_preset_file": "../_presets/health.json",
+  "required_page_paths": ["/", "/leistungen", "/impressum", "/datenschutz"],
+  "default_locale": "de-DE"
+}

@@ -1,0 +1,50 @@
+{
+  "$comment": "Design preset (docs/CONTRACTS-AND-CONVENTIONS.md section 5: sites/_presets). Hand-authored token set; sites/_template-base/scripts/build-design-tokens.mjs compiles it into src/styles/design-tokens.generated.css and validates the WCAG contrast pairs below (docs/AI-AND-PROVIDERS.md section 1: contrast is deterministic code, never an LLM decision).",
+  "id": "health",
+  "label": "Health / Praxis",
+  "description": "Calm teal palette for medical practices. Dark text on light surfaces, high contrast, no colour as the only signal.",
+  "version": "1.0.0",
+  "tokens": {
+    "colors": {
+      "surface": "#FFFFFF",
+      "surface-muted": "#F5F8F9",
+      "line": "#D7E1E3",
+      "ink": "#101A1D",
+      "ink-muted": "#4A5C60",
+      "brand-50": "#F0F7F9",
+      "brand-100": "#DCEBEF",
+      "brand-200": "#B9D7DF",
+      "brand-300": "#8ABCC8",
+      "brand-400": "#4F97A8",
+      "brand-500": "#2B7A8C",
+      "brand-600": "#1F6070",
+      "brand-700": "#174A57",
+      "brand-800": "#123944",
+      "accent-100": "#F7E7DA",
+      "accent-600": "#9A4A1B",
+      "accent-700": "#7A3A15",
+      "focus": "#1F6070"
+    },
+    "radius": {
+      "sm": "0.25rem",
+      "md": "0.5rem",
+      "lg": "0.875rem",
+      "xl": "1.25rem"
+    },
+    "fonts": {
+      "sans": "\"Inter\", system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    },
+    "contrastPairs": [
+      { "foreground": "ink", "background": "surface", "minRatio": 4.5, "usage": "body text" },
+      { "foreground": "ink-muted", "background": "surface", "minRatio": 4.5, "usage": "secondary text" },
+      { "foreground": "ink-muted", "background": "surface-muted", "minRatio": 4.5, "usage": "secondary text on muted surface" },
+      { "foreground": "brand-600", "background": "surface", "minRatio": 4.5, "usage": "links and headings on white" },
+      { "foreground": "surface", "background": "brand-600", "minRatio": 4.5, "usage": "primary button label" },
+      { "foreground": "surface", "background": "brand-700", "minRatio": 4.5, "usage": "primary button label, hover" },
+      { "foreground": "brand-700", "background": "brand-50", "minRatio": 4.5, "usage": "text on tinted panels" },
+      { "foreground": "accent-700", "background": "accent-100", "minRatio": 4.5, "usage": "badge text" },
+      { "foreground": "accent-600", "background": "surface", "minRatio": 4.5, "usage": "accent text on white" },
+      { "foreground": "line", "background": "surface", "minRatio": 1.2, "usage": "hairlines (non-text contrast is checked at 3:1 separately)" }
+    ]
+  }
+}

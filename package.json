@@ -1,0 +1,39 @@
+{
+  "name": "ai-web-agency",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Web Agency - AI generates content DATA, hand-written code renders it into static, gated client sites.",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=20.9.0" },
+  "workspaces": ["apps/*", "packages/*", "sites/*"],
+  "scripts": {
+    "contracts": "npm run contracts:export && npm run contracts:types",
+    "contracts:export": "node scripts/py.mjs scripts/export_contracts.py",
+    "contracts:types": "node scripts/emit-contract-types.mjs",
+    "contracts:check": "node scripts/py.mjs scripts/export_contracts.py --check",
+    "tokens": "node sites/_template-base/scripts/build-design-tokens.mjs",
+    "tokens:check": "node sites/_template-base/scripts/build-design-tokens.mjs --check",
+    "validate": "node sites/_template-base/scripts/gate/validate-content.mjs",
+    "validate:production": "node sites/_template-base/scripts/gate/validate-content.mjs --production",
+    "build:site": "npm run build --workspace @ai-web-agency/template-base",
+    "validate:output": "node sites/_template-base/scripts/validate-output.mjs",
+    "typecheck:site": "npm run typecheck --workspace @ai-web-agency/template-base",
+    "qa:smoke": "node scripts/site-smoke.mjs",
+    "test:python": "node scripts/py.mjs -m pytest apps/api/tests -q",
+    "test:site": "npm run contracts:check && npm run tokens:check && npm run validate && npm run typecheck:site && npm run build:site && npm run validate:output && npm run qa:smoke",
+    "typecheck:dashboard": "npm run typecheck --workspace @ai-web-agency/dashboard",
+    "build:dashboard": "npm run build --workspace @ai-web-agency/dashboard",
+    "test:dashboard": "npm run typecheck:dashboard && npm run build:dashboard",
+    "test": "npm run test:python && npm run test:site && npm run test:dashboard",
+    "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
+    "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
+    "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "lighthouse": "^13.5.0",
+    "prettier": "^3.3.3"
+  }
+}

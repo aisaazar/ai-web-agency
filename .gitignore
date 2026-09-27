@@ -1,0 +1,46 @@
+# AI Web Agency - repository ignore rules
+# Generated contracts are intentionally tracked: they are the hand-off artefact between the
+# Python control plane and the template, and a clone must be able to run the gates without
+# a Python toolchain. Never add packages/contracts/* here.
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local DB / build/test output
+agency.db
+*.db
+local.sqlite*
+dist/
+coverage/
+.artifacts/
+*.log
+
+# Deployment / OS / editor
+.vercel/
+.wrangler/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

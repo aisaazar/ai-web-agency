@@ -1,0 +1,307 @@
+{
+  "content_schema_version": "1.0.0",
+  "meta": {
+    "client_slug": "zahnbalance-nuernberg",
+    "is_fixture": true,
+    "note": "Fiktive Referenzpraxis für lokale Build-, UI- und Contract-Tests. Nicht für einen echten Mandanten bestimmt."
+  },
+  "locale": "de-DE",
+  "site": {
+    "name": "Zahnbalance Nürnberg",
+    "short_name": "Zahnbalance",
+    "tagline": "Zahnmedizin mit Ruhe, Präzision und Zeit für Menschen.",
+    "url": "https://zahnbalance-demo.example",
+    "description": "Fiktive Referenzpraxis für moderne Zahnmedizin in Nürnberg mit persönlicher Beratung, klaren Abläufen und einem ruhigen Praxisgefühl.",
+    "theme_color": "#0F5B5A",
+    "og_image": null
+  },
+  "business": {
+    "legal_name": "Zahnbalance Nürnberg GmbH",
+    "brand_name": "Zahnbalance Nürnberg",
+    "business_type": "dental_clinic",
+    "jurisdiction": "DE",
+    "address": {
+      "street": "Musterstraße 12",
+      "postal_code": "90402",
+      "city": "Nürnberg",
+      "region": "Bayern",
+      "country": "DE"
+    },
+    "geo": {
+      "latitude": 49.4521,
+      "longitude": 11.0767
+    },
+    "contact": {
+      "phone": "+49 911 555 0198",
+      "email": "hallo@zahnbalance-demo.example",
+      "emergency_phone": "+49 911 555 0198",
+      "emergency_note": "Bei akuten Beschwerden bitte telefonisch Kontakt aufnehmen. Der Bereitschaftsdienst wird je nach Situation empfohlen."
+    },
+    "opening_hours": [
+      {
+        "days": ["Mo", "Tu", "We", "Th", "Fr"],
+        "slots": [{"opens": "08:00", "closes": "18:00"}]
+      }
+    ],
+    "spoken_languages": ["de", "en"],
+    "insurance": ["gesetzlich", "privat", "selbstzahler"],
+    "payment_methods": ["EC-Karte", "Überweisung"],
+    "price_range": "$$",
+    "accessibility": {
+      "step_free_entrance": true,
+      "elevator": true,
+      "accessible_toilet": true,
+      "notes": "Ebenerdiger Zugang und stufenarme Wege innerhalb der Praxis."
+    },
+    "parking": "Öffentliche Parkhäuser und Kurzzeitparkplätze befinden sich in der Umgebung der fiktiven Praxisadresse.",
+    "public_transport": "Die Praxis ist in diesem Fixture zu Fuß vom Nürnberger Hauptbahnhof erreichbar.",
+    "map": {
+      "link_url": "https://maps.google.com/?q=49.4521,11.0767",
+      "link_label": "Route in Google Maps öffnen",
+      "note": "Externer Kartendienst wird nur nach einem bewussten Klick geöffnet."
+    }
+  },
+  "compliance": {
+    "medical_disclaimer": [
+      "Die Inhalte dieser fiktiven Referenzseite ersetzen keine individuelle Untersuchung oder medizinische Beratung.",
+      "Therapieentscheidungen werden ausschließlich nach persönlicher Untersuchung und Aufklärung getroffen."
+    ],
+    "legal_review_status": "pending",
+    "notes": "Fixture für Engineering-Tests. Rechtstexte benötigen vor Produktion eine juristische Prüfung.",
+    "og_image_alt": "Zahnbalance Nürnberg – fiktive Referenzpraxis"
+  },
+  "hero": {
+    "eyebrow": "FIKTIVE REFERENZPRAXIS",
+    "headline": "Ein ruhiger Ort für Ihre Zahngesundheit.",
+    "subheadline": "Moderne Zahnmedizin, verständlich erklärt und persönlich begleitet.",
+    "paragraphs": [
+      "Wir verbinden präzise Diagnostik mit einer ruhigen Atmosphäre und klaren nächsten Schritten.",
+      "Von der Vorsorge bis zur ästhetischen Behandlung steht im Mittelpunkt, was zu Ihnen passt."
+    ],
+    "primary_cta": {"label": "Termin anfragen", "href": "#kontakt"},
+    "secondary_cta": {"label": "Leistungen ansehen", "href": "/leistungen"}
+  },
+  "highlights": [
+    {"icon": "heart", "title": "Zeit für Fragen", "body": "Behandlungen und Optionen werden in verständlicher Sprache besprochen."},
+    {"icon": "shield", "title": "Klare Abläufe", "body": "Von der ersten Untersuchung bis zur Nachsorge mit transparenten nächsten Schritten."},
+    {"icon": "sparkle", "title": "Moderner Ansatz", "body": "Digitale Diagnostik und zeitgemäße Behandlungskonzepte in einem ruhigen Praxisumfeld."}
+  ],
+  "services": {
+    "heading": "Leistungen",
+    "intro": [
+      "Die folgenden Leistungen sind Teil des fiktiven Content-Fixtures und zeigen, wie strukturierte Daten in ein wiederverwendbares Seitensystem einfließen.",
+      "Eine konkrete Indikation und ein individueller Behandlungsplan entstehen immer nach persönlicher Untersuchung."
+    ],
+    "note": "Fixture-Inhalte sind beispielhaft und nicht als medizinische Zusage für eine reale Praxis gedacht.",
+    "items": [
+      {
+        "id": "prophylaxe",
+        "title": "Prophylaxe & Vorsorge",
+        "summary": "Systematische Vorsorge für Zähne und Zahnfleisch.",
+        "paragraphs": ["Wir verbinden Untersuchung, professionelle Reinigung und individuelle Empfehlungen zu einem nachvollziehbaren Vorsorgeplan."],
+        "features": ["Kontrolluntersuchung", "Professionelle Zahnreinigung", "Individuelle Mundhygiene-Empfehlung"],
+        "icon": "shield"
+      },
+      {
+        "id": "aesthetik",
+        "title": "Ästhetische Zahnmedizin",
+        "summary": "Natürliche Ästhetik mit einem konservativen Blick auf Zahnsubstanz.",
+        "paragraphs": ["Gemeinsam werden Form, Farbe und der gewünschte Umfang einer Behandlung besprochen. Die Entscheidung bleibt individuell."],
+        "features": ["Beratung", "Verschiedene Versorgungskonzepte", "Transparente Planung"],
+        "icon": "sparkle"
+      },
+      {
+        "id": "zahnerhalt",
+        "title": "Zahnerhalt",
+        "summary": "Erhalt natürlicher Zähne durch individuelle Diagnostik und Behandlung.",
+        "paragraphs": ["Der Fokus liegt auf einem möglichst nachhaltigen Erhalt der eigenen Zähne und auf einer verständlichen Begleitung durch die Behandlung."],
+        "features": ["Diagnostik", "Füllungstherapie", "Nachsorge"],
+        "icon": "tooth"
+      }
+    ]
+  },
+  "team": {
+    "heading": "Menschen hinter der Praxis",
+    "intro": ["Ein gutes Behandlungsergebnis beginnt mit guter Kommunikation. Die Teamdaten unten sind bewusst als Fixture markiert."],
+    "members": [
+      {
+        "id": "anna-weber",
+        "name": "Dr. Anna Weber",
+        "role": "Zahnärztin & Praxisleitung",
+        "qualifications": ["Zahnärztin", "Schwerpunkt Zahnerhalt"],
+        "focus_areas": ["Vorsorge", "Zahnerhalt", "Beratung"],
+        "languages": ["de", "en"],
+        "bio": ["Ruhige Beratung und strukturierte Behandlungsplanung stehen im Mittelpunkt."],
+        "photo_url": null
+      },
+      {
+        "id": "jonas-keller",
+        "name": "Jonas Keller",
+        "role": "Zahnmedizinische Prophylaxe",
+        "qualifications": ["Prophylaxe", "Patientenbegleitung"],
+        "focus_areas": ["Professionelle Zahnreinigung", "Mundhygiene"],
+        "languages": ["de", "en"],
+        "bio": ["Erklärt Vorsorge verständlich und baut Empfehlungen in alltagstaugliche Schritte um."],
+        "photo_url": null
+      }
+    ]
+  },
+  "hours": {
+    "heading": "Besuch & Erreichbarkeit",
+    "intro": ["Die fiktive Praxis ist Montag bis Freitag geöffnet. Termine werden individuell vereinbart."],
+    "appointment_note": "Für eine Terminvereinbarung genügt eine kurze Anfrage. Akute Beschwerden bitte telefonisch ankündigen.",
+    "note": "Die Adresse, Öffnungszeiten und Kontaktdaten sind ausschließlich Fixture-Daten."
+  },
+  "contact": {
+    "heading": "Lassen Sie uns sprechen",
+    "intro": [
+      "Beschreiben Sie kurz Ihr Anliegen. Im späteren Plattformbetrieb wird dieses Formular an den freigegebenen Lead-Endpunkt übergeben.",
+      "In dieser Referenzseite ist noch kein produktiver Lead-Endpunkt hinterlegt."
+    ],
+    "channels_heading": "Direktkontakt",
+    "reply_note": "Die fiktive Praxis antwortet beispielhaft innerhalb der üblichen Geschäftszeiten.",
+    "form": {
+      "heading": "Termin anfragen",
+      "intro": ["Name, E-Mail und Nachricht reichen für eine erste Anfrage."],
+      "consent_label": "Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung meiner Anfrage zu.",
+      "submit_label": "Anfrage senden",
+      "submitting_label": "Wird gesendet …",
+      "success_message": "Danke. Ihre Anfrage wurde für diese Referenzseite vorbereitet.",
+      "failure_message": "Die Anfrage konnte nicht übermittelt werden. Bitte kontaktieren Sie die Praxis telefonisch.",
+      "offline_notice": "Referenzmodus: Es ist noch kein produktiver Lead-Endpunkt konfiguriert.",
+      "labels": {
+        "name": "Name",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "phone_optional": "optional",
+        "message": "Nachricht",
+        "required_hint": "Pflichtfeld",
+        "optional_hint": "optional",
+        "error_required": "Bitte füllen Sie dieses Feld aus.",
+        "error_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        "error_summary": "Bitte prüfen Sie die markierten Felder."
+      }
+    }
+  },
+  "faq": {
+    "heading": "Häufige Fragen",
+    "intro": "Einige typische Fragen als strukturierte, suchmaschinenfreundliche Inhalte.",
+    "items": [
+      {
+        "question": "Wie vereinbare ich einen Termin?",
+        "answer": ["Über das Anfrageformular oder telefonisch. Der konkrete Termin wird mit der Praxis abgestimmt."]
+      },
+      {
+        "question": "Was bringe ich zum ersten Termin mit?",
+        "answer": ["Für einen realen Termin werden je nach Situation persönliche Unterlagen und relevante Vorbefunde benötigt. Diese Fixture-Seite enthält dazu keine verbindliche Vorgabe."]
+      },
+      {
+        "question": "Gibt es einen barrierearmen Zugang?",
+        "answer": ["Die Fixture-Daten sehen einen stufenarmen Zugang, einen Aufzug und eine barrierearme Toilette vor."]
+      }
+    ]
+  },
+  "legal": {
+    "imprint": {
+      "provider_name": "Zahnbalance Nürnberg GmbH",
+      "legal_form": "GmbH",
+      "represented_by": ["Dr. Anna Weber"],
+      "address": {
+        "street": "Musterstraße 12",
+        "postal_code": "90402",
+        "city": "Nürnberg",
+        "region": "Bayern",
+        "country": "DE"
+      },
+      "contact": {
+        "phone": "+49 911 555 0198",
+        "email": "hallo@zahnbalance-demo.example"
+      },
+      "professional_title": "Zahnärztin",
+      "professional_title_country": "Deutschland",
+      "professional_body": {
+        "name": "Bayerische Landeszahnärztekammer",
+        "url": "https://www.blzk.de/",
+        "supervising_authority": "Fiktive Referenzangabe – vor Produktion juristisch prüfen."
+      },
+      "professional_regulations": [
+        {"name": "Zahnheilkundegesetz", "url": "https://www.gesetze-im-internet.de/zahnheilkng/"},
+        {"name": "Berufsordnung für die bayerischen Zahnärztinnen und Zahnärzte", "url": "https://www.blzk.de/"}
+      ],
+      "vat_id": "DE000000000",
+      "responsible_for_content": {
+        "name": "Dr. Anna Weber",
+        "address": {
+          "street": "Musterstraße 12",
+          "postal_code": "90402",
+          "city": "Nürnberg",
+          "region": "Bayern",
+          "country": "DE"
+        }
+      },
+      "dispute_resolution": ["Diese Referenzseite enthält keine echte Praxisbeziehung. Vor Produktion ist die passende Verbraucherstreitbeilegung rechtlich zu prüfen."],
+      "liability_notes": ["Die Inhalte dienen ausschließlich als technische Referenz und sind keine individuelle medizinische Beratung."],
+      "copyright_notes": ["Alle Texte sind fiktive Beispielinhalte für den AI Web Agency Build-Prozess."],
+      "last_updated": "2026-09-27"
+    },
+    "privacy": {
+      "controller": {
+        "name": "Zahnbalance Nürnberg GmbH",
+        "address": {
+          "street": "Musterstraße 12",
+          "postal_code": "90402",
+          "city": "Nürnberg",
+          "region": "Bayern",
+          "country": "DE"
+        }
+      },
+      "controller_contact": {
+        "phone": "+49 911 555 0198",
+        "email": "hallo@zahnbalance-demo.example"
+      },
+      "data_protection_officer": null,
+      "hosting": {
+        "provider": "Vercel (planned delivery provider)",
+        "location": "EU/USA depending on deployment configuration",
+        "note": "Fiktiver Fixture-Hinweis. Konkrete Verarbeitung und AVV müssen für einen echten Mandanten geprüft werden."
+      },
+      "legal_basis": [
+        {"heading": "Anfragen", "paragraphs": ["Die Bearbeitung einer Kontaktanfrage stützt sich im Regelfall auf die zur Vertragsanbahnung bzw. zur Bearbeitung der Anfrage erforderlichen Schritte."]},
+        {"heading": "Dokumentation", "paragraphs": ["Aufbewahrung und Löschung werden im Produktivbetrieb nach Zweck und gesetzlicher Pflicht festgelegt."]}
+      ],
+      "data_categories": [
+        {"heading": "Kontaktangaben", "paragraphs": ["Name, E-Mail, Telefon und freiwillige Nachricht."]},
+        {"heading": "Technische Daten", "paragraphs": ["Im Produktivbetrieb können technisch erforderliche Serverdaten anfallen."]}
+      ],
+      "recipients": ["Nur die für Hosting, Sicherheit und Bearbeitung der Anfrage erforderlichen Dienstleister, soweit rechtlich zulässig und beauftragt."],
+      "retention": ["Anfragen werden gelöscht, sobald Zweck und gesetzliche Aufbewahrungspflichten dies erlauben."],
+      "rights": [
+        {"heading": "Ihre Rechte", "paragraphs": ["Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch und Datenübertragbarkeit nach den gesetzlichen Voraussetzungen."]},
+        {"heading": "Beschwerde", "paragraphs": ["Sie können sich bei einer Datenschutzaufsichtsbehörde beschweren."]}
+      ],
+      "cookies_notice": "Diese Referenzseite setzt keine nicht notwendigen Tracking-Cookies.",
+      "contact_form_notice": "Im späteren Produktivbetrieb werden Kontaktangaben nur soweit verarbeitet, wie es zur Bearbeitung der Anfrage erforderlich ist.",
+      "no_tracking_notice": "Kein Google-Fonts-CDN, kein Analytics-Tracker und kein Karten-iframe in dieser Referenz.",
+      "supervisory_authority": {
+        "name": "Bayerisches Landesamt für Datenschutzaufsicht",
+        "url": "https://www.lda.bayern.de/",
+        "address": {
+          "street": "Promenade 27",
+          "postal_code": "91522",
+          "city": "Ansbach",
+          "region": "Bayern",
+          "country": "DE"
+        }
+      },
+      "last_updated": "2026-09-27"
+    }
+  },
+  "seo": {
+    "pages": [
+      {"path": "/", "title": "Zahnbalance Nürnberg | Zahnmedizin mit Zeit", "description": "Fiktive Referenzpraxis für moderne Zahnmedizin in Nürnberg mit persönlicher Beratung, klaren Abläufen und ruhigem Praxisgefühl."},
+      {"path": "/leistungen", "title": "Leistungen | Zahnbalance Nürnberg", "description": "Übersicht der fiktiven Leistungen von Zahnbalance Nürnberg: Vorsorge, Ästhetik und Zahnerhalt."},
+      {"path": "/impressum", "title": "Impressum | Zahnbalance Nürnberg", "description": "Impressum der fiktiven Referenzpraxis Zahnbalance Nürnberg."},
+      {"path": "/datenschutz", "title": "Datenschutz | Zahnbalance Nürnberg", "description": "Datenschutzerklärung der fiktiven Referenzpraxis Zahnbalance Nürnberg."}
+    ]
+  }
+}

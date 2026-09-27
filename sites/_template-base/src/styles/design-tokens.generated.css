@@ -1,0 +1,40 @@
+/* GENERATED FILE - DO NOT EDIT.
+ *
+ * Source: sites/_presets/health.json (preset id: health, version 1.0.0)
+ * Generator: sites/_template-base/scripts/build-design-tokens.mjs
+ * Regenerate with: npm run tokens
+ *
+ * The contrast pairs declared in the preset were verified with WCAG 2.1 math by the generator.
+ */
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F5F8F9;
+  --color-line: #D7E1E3;
+  --color-ink: #101A1D;
+  --color-ink-muted: #4A5C60;
+  --color-brand-50: #F0F7F9;
+  --color-brand-100: #DCEBEF;
+  --color-brand-200: #B9D7DF;
+  --color-brand-300: #8ABCC8;
+  --color-brand-400: #4F97A8;
+  --color-brand-500: #2B7A8C;
+  --color-brand-600: #1F6070;
+  --color-brand-700: #174A57;
+  --color-brand-800: #123944;
+  --color-accent-100: #F7E7DA;
+  --color-accent-600: #9A4A1B;
+  --color-accent-700: #7A3A15;
+  --color-focus: #1F6070;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+}
+
+:root {
+  --color-focus-ring: #1F6070;
+}
