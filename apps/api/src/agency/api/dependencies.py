@@ -1,8 +1,12 @@
 """HTTP dependencies; the API layer owns transaction boundaries."""
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+import logging
 
 from sqlalchemy.orm import Session, sessionmaker
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def get_db(session_factory: sessionmaker[Session]):
@@ -11,8 +15,15 @@ def get_db(session_factory: sessionmaker[Session]):
         try:
             yield session
             session.commit()
+            callbacks: list[Callable[[], None]] = session.info.pop("after_commit", [])
+            for callback in callbacks:
+                try:
+                    callback()
+                except Exception:
+                    LOGGER.exception("after_commit callback failed")
         except Exception:
             session.rollback()
+            session.info.pop("after_commit", None)
             raise
         finally:
             session.close()

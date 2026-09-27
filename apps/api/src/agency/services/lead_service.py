@@ -1,6 +1,7 @@
 """Lead capture and lifecycle use cases."""
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -13,10 +14,40 @@ from agency.api.schemas import (
     LeadSubmissionOut,
 )
 from agency.db.models import Client, LeadEvent, LeadSubmission, Site
+from agency.providers.notify import Notification, NotifyProvider, get_notify_provider
 from agency.repositories import LeadRepository
 
 
-def create_lead(session: Session, payload: LeadSubmissionIn) -> LeadSubmissionOut:
+def _queue_lead_notification(
+    session: Session,
+    *,
+    lead: LeadSubmission,
+    provider: NotifyProvider,
+) -> None:
+    recipient = os.getenv("AGENCY_LEAD_NOTIFICATION_TO", "agency@example.invalid")
+    notification = Notification(
+        to=recipient,
+        subject=f"New lead for client {lead.client_id}",
+        body=(
+            f"Name: {lead.name}\n"
+            f"Email: {lead.email}\n"
+            f"Phone: {lead.phone or '-'}\n"
+            f"Message: {lead.message}\n"
+            f"Status: {lead.status}\n"
+        ),
+    )
+    callbacks = session.info.setdefault("after_commit", [])
+    callbacks.append(
+        lambda notification=notification, provider=provider: provider.send(notification)
+    )
+
+
+def create_lead(
+    session: Session,
+    payload: LeadSubmissionIn,
+    *,
+    notify_provider: NotifyProvider | None = None,
+) -> LeadSubmissionOut:
     if not payload.consent:
         raise HTTPException(status_code=400, detail="Consent is required")
 
@@ -64,6 +95,12 @@ def create_lead(session: Session, payload: LeadSubmissionIn) -> LeadSubmissionOu
         actor="system",
         note="lead captured",
     ))
+    if lead.status == "new":
+        _queue_lead_notification(
+            session,
+            lead=lead,
+            provider=notify_provider or get_notify_provider(),
+        )
     return LeadSubmissionOut(id=lead.id, status=lead.status, received_at=lead.created_at)
 
 

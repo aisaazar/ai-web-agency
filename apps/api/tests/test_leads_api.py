@@ -126,3 +126,33 @@ def test_lead_status_is_org_scoped(tmp_path):
         f"/v1/leads/{lead_id}/events?org_id={other_org.id}",
     )
     assert response.status_code == 404
+
+
+
+def test_new_lead_notification_runs_after_commit(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    site = _seed(database_url)
+    app = create_app(database_url)
+
+    class FakeNotifyProvider:
+        name = "fake"
+        def __init__(self):
+            self.messages = []
+        def send(self, notification):
+            self.messages.append(notification)
+
+    provider = FakeNotifyProvider()
+    import agency.services.lead_service as lead_service
+    monkeypatch.setattr(lead_service, "get_notify_provider", lambda: provider)
+
+    response = _post(app, {
+        "site_id": str(site.id),
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "message": "Please call me.",
+        "consent": True,
+    })
+
+    assert response.status_code == 201
+    assert len(provider.messages) == 1
+    assert "Jane Doe" in provider.messages[0].body
