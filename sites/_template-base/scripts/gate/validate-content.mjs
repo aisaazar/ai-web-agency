@@ -248,6 +248,37 @@ if (production) {
   }
 }
 
+if (production) {
+  const leadApi = process.env.NEXT_PUBLIC_AGENCY_LEAD_API_URL?.trim() ?? "";
+  const siteId = process.env.NEXT_PUBLIC_AGENCY_SITE_ID?.trim() ?? "";
+  const agentApi = process.env.NEXT_PUBLIC_AGENCY_AGENT_API_URL?.trim() ?? "";
+  const publicApiUrls = [
+    ["NEXT_PUBLIC_AGENCY_LEAD_API_URL", leadApi, true],
+    ["NEXT_PUBLIC_AGENCY_AGENT_API_URL", agentApi, false],
+  ];
+  const urlProblems = [];
+  for (const [name, value, required] of publicApiUrls) {
+    if (!value) {
+      if (required) urlProblems.push(`${name} is required`);
+      continue;
+    }
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "https:") urlProblems.push(`${name} must use HTTPS`);
+      if (url.username || url.password) urlProblems.push(`${name} must not contain credentials`);
+    } catch {
+      urlProblems.push(`${name} is not a valid URL`);
+    }
+  }
+  report.check(
+    "production_config",
+    Boolean(siteId) && urlProblems.length === 0,
+    Boolean(siteId) && urlProblems.length === 0
+      ? "lead API, site ID, and optional agent API are production-safe"
+      : [siteId ? "" : "NEXT_PUBLIC_AGENCY_SITE_ID is required", ...urlProblems].filter(Boolean).join("; "),
+  );
+}
+
 // 9. deterministic_manifest ----------------------------------------------------------------------
 report.check(
   "deterministic_manifest",
