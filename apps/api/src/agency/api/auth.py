@@ -1,6 +1,7 @@
 """Bootstrap and session authentication endpoints."""
 
 import os
+import time
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -21,6 +22,7 @@ from agency.api.dependencies import get_db
 from agency.db.auth_models import Membership, User
 from agency.db.models import Org
 from agency.services.audit_service import record_audit
+from agency.services.csrf_service import CSRF_COOKIE, create_csrf_token
 from agency.services.auth_service import (
     SESSION_COOKIE,
     create_session,
@@ -31,6 +33,33 @@ from agency.services.auth_service import (
     revoke_session,
     verify_password,
 )
+
+_LOGIN_LIMIT = 5
+_LOGIN_WINDOW_SECONDS = 15 * 60
+_login_failures: dict[str, list[float]] = {}
+
+
+def _login_key(request: Request, email: str) -> str:
+    host = request.client.host if request.client else "unknown"
+    return f"{host}:{email.lower().strip()}"
+
+
+def _check_login_limit(request: Request, email: str) -> str:
+    key = _login_key(request, email)
+    now = time.monotonic()
+    recent = [stamp for stamp in _login_failures.get(key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
+    _login_failures[key] = recent
+    if len(recent) >= _LOGIN_LIMIT:
+        raise HTTPException(status_code=429, detail="too many login attempts", headers={"Retry-After": "900"})
+    return key
+
+
+def _record_login_failure(key: str) -> None:
+    _login_failures.setdefault(key, []).append(time.monotonic())
+
+
+def _clear_login_failures(key: str) -> None:
+    _login_failures.pop(key, None)
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
@@ -67,6 +96,15 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             samesite="lax",
             path="/",
         )
+        response.set_cookie(
+            CSRF_COOKIE,
+            create_csrf_token(),
+            max_age=12 * 60 * 60,
+            httponly=False,
+            secure=secure,
+            samesite="lax",
+            path="/",
+        )
 
     @router.post("/bootstrap", response_model=AuthResponse, status_code=201)
     def bootstrap(payload: BootstrapRequest, response: Response, session: Session = Depends(db)):
@@ -97,10 +135,18 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         return response_for(session, user)
 
     @router.post("/login", response_model=AuthResponse)
-    def login(payload: LoginRequest, response: Response, session: Session = Depends(db)):
+    def login(
+        payload: LoginRequest,
+        response: Response,
+        request: Request,
+        session: Session = Depends(db),
+    ):
+        key = _check_login_limit(request, payload.email)
         user = get_user_by_email(session, payload.email)
         if user is None or not user.is_active or not verify_password(payload.password, user.password_hash):
+            _record_login_failure(key)
             raise HTTPException(status_code=401, detail="invalid credentials")
+        _clear_login_failures(key)
         memberships = memberships_for(session, user.id)
         token = create_session(session, user)
         for membership in memberships:
@@ -170,6 +216,8 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
                 )
         revoke_session(session, token)
         response.delete_cookie(SESSION_COOKIE, path="/")
-        return Response(status_code=204)
+        response.delete_cookie(CSRF_COOKIE, path="/")
+        response.status_code = 204
+        return response
 
     return router

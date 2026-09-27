@@ -5,6 +5,7 @@ from agency.api import create_app
 from agency.db.auth_models import AuditLog, Membership, User
 from agency.db.models import Client, Org, Site
 from agency.services.auth_service import create_session, hash_password
+from agency.services.csrf_service import create_csrf_token
 from agency.db.session import create_all, create_session_factory
 
 
@@ -88,13 +89,14 @@ def test_lead_status_history_is_persisted(tmp_path):
     token = create_session(session, user)
     session.commit()
     session.close()
-    cookie = f"agency_session={token}"
+    csrf = create_csrf_token()
+    cookie = f"agency_session={token}; agency_csrf={csrf}"
 
     changed = _request(
         app,
         "PATCH",
         f"/v1/leads/{lead_id}/status?org_id={site.org_id}",
-        headers={"Cookie": cookie},
+        headers={"Cookie": cookie, "X-CSRF-Token": csrf},
         json={"status": "contacted", "actor": "spoofed", "note": "Called client"},
     )
     assert changed.status_code == 200

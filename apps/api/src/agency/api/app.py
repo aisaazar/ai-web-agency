@@ -2,7 +2,8 @@
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
 
@@ -19,6 +20,7 @@ from agency.api.leads import build_router as build_leads_router
 from agency.api.publish import build_router as build_publish_router
 from agency.api.research import build_router as build_research_router
 from agency.db.session import create_all, create_session_factory
+from agency.services.csrf_service import CSRF_COOKIE, CSRF_HEADER, valid_csrf_token
 
 
 def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
@@ -29,9 +31,25 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+        allow_headers=["*", CSRF_HEADER],
     )
+
+    @app.middleware("http")
+    async def csrf_protection(request: Request, call_next):
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            session_cookie = request.cookies.get("agency_session")
+            exempt = {"/v1/auth/bootstrap", "/v1/auth/login"}
+            if session_cookie and request.url.path not in exempt:
+                if not valid_csrf_token(
+                    request.cookies.get(CSRF_COOKIE),
+                    request.headers.get(CSRF_HEADER),
+                ):
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "CSRF token required"},
+                    )
+        return await call_next(request)
 
     @app.get("/health", tags=["system"])
     def health() -> dict[str, str]:
