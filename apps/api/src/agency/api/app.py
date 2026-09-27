@@ -32,6 +32,7 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
+        allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["*", CSRF_HEADER],
     )

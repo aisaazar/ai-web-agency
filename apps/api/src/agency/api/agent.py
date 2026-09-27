@@ -27,13 +27,16 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
 
     def set_visitor_cookie(response: Response, visitor_ref: str) -> None:
         secure = os.getenv("AGENCY_COOKIE_SECURE", "").lower() in {"1", "true", "yes"}
+        samesite = os.getenv("AGENCY_AGENT_COOKIE_SAMESITE", "lax").strip().lower()
+        if samesite not in {"lax", "strict", "none"}:
+            samesite = "lax"
         response.set_cookie(
             VISITOR_COOKIE,
             visitor_ref,
             max_age=24 * 60 * 60,
             httponly=True,
             secure=secure,
-            samesite="lax",
+            samesite=samesite,
             path="/",
         )
 
