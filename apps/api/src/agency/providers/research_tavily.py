@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from agency.providers.research import FetchedPage, Source
+from agency.services.url_security import UnsafeFetchURL, validate_fetch_url
 
 
 class TavilyProviderError(RuntimeError):
@@ -80,8 +81,10 @@ class TavilyResearchProvider:
         return sources
 
     def fetch(self, url: str) -> FetchedPage:
-        if not url.startswith("https://"):
-            raise TavilyProviderError("Tavily fetch only accepts https URLs")
+        try:
+            validate_fetch_url(url)
+        except UnsafeFetchURL as exc:
+            raise TavilyProviderError(str(exc)) from exc
         data = self._post(self.extract_endpoint, {
             "urls": [url],
             "include_images": False,

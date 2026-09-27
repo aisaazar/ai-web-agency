@@ -5,7 +5,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from agency.db.models import Artifact, Client, Deploy, LeadSubmission, Site, SiteVersion
+from agency.db.llm_budget_models import ClientLLMBudget
+from agency.db.models import Artifact, Client, Deploy, LLMInvocation, LeadSubmission, Org, Site, SiteVersion
 from agency.db.workflow_models import PipelineRun
 
 
@@ -102,4 +103,47 @@ def get_overview(session: Session, *, org_id: UUID) -> dict:
             }
             for lead in leads
         ],
+    }
+
+def get_llm_cost_report(session: Session, *, org_id: UUID) -> dict:
+    org = session.get(Org, org_id)
+    if org is None:
+        raise ValueError("organization not found")
+
+    spent_rows = session.execute(
+        select(LLMInvocation.client_id, LLMInvocation.cost_micros)
+        .where(
+            LLMInvocation.org_id == org_id,
+            LLMInvocation.status == "completed",
+        )
+    ).all()
+    spent_by_client: dict[str, int] = {}
+    for client_id, cost in spent_rows:
+        spent_by_client[str(client_id)] = spent_by_client.get(str(client_id), 0) + int(cost or 0)
+
+    budgets = {
+        str(row.client_id): int(row.budget_micros)
+        for row in session.scalars(
+            select(ClientLLMBudget).where(ClientLLMBudget.org_id == org_id)
+        )
+    }
+    clients = list(
+        session.scalars(
+            select(Client).where(Client.org_id == org_id).order_by(Client.name)
+        )
+    )
+    client_rows = [
+        {
+            "client_id": client.id,
+            "client_name": client.name,
+            "budget_micros": budgets.get(str(client.id), int(org.llm_budget_micros)),
+            "spent_micros": spent_by_client.get(str(client.id), 0),
+        }
+        for client in clients
+    ]
+    return {
+        "org_id": org_id,
+        "budget_micros": int(org.llm_budget_micros),
+        "spent_micros": sum(spent_by_client.values()),
+        "clients": client_rows,
     }

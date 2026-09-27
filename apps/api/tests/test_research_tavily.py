@@ -47,6 +47,10 @@ def test_tavily_search_maps_results(monkeypatch):
 
 def test_tavily_fetch_maps_extracted_content(monkeypatch):
     monkeypatch.setenv("TAVILY_API_KEY", "test-key")
+    monkeypatch.setattr(
+        "agency.services.url_security.socket.getaddrinfo",
+        lambda *args, **kwargs: [(2, 1, 6, "", ("93.184.216.34", 443))],
+    )
 
     monkeypatch.setattr(
         "agency.providers.research_tavily.urlopen",

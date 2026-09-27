@@ -4,16 +4,16 @@
 
 - [ ] No LLM output rendered as raw HTML; markdown through an allowlist sanitizer; never `dangerouslySetInnerHTML`
 - [ ] Fetched/scraped content is untrusted: never drives tool calls, deploy actions, file paths or SQL
-- [ ] Fetch provider: scheme allowlist, block private/loopback/link-local IPs, cap redirects + body size, timeout
+- [x] Fetch provider: scheme allowlist, block private/loopback/link-local IPs, cap redirects + body size, timeout
 - [ ] One scoped repository layer; cross-tenant test suite; every query carries `org_id`
 - [ ] Per-site deploy token scoped to one project; no org-wide token inside a client build; no secrets in build output
-- [ ] Studio auth: argon2/bcrypt hashes, 2FA-ready, secure + httpOnly cookies, CSRF, rate limits, session rotation
-- [ ] LLM budget caps per org **and** per client; bounded retries; hard fail when budget is exceeded
+- [x] Studio auth: argon2/bcrypt hashes, 2FA-ready, secure + httpOnly cookies, CSRF, rate limits, session rotation
+- [x] LLM budget caps per org **and** per client; bounded retries; hard fail when budget is exceeded
 - [ ] Generated sites: strict CSP, no third-party trackers by default, **no Google Fonts CDN** (German court rulings)
 - [ ] DE: Impressum, Datenschutz, cookie consent, AVV with processors, EU data residency where personal data is involved
 - [ ] Health/legal claims: banned-claim validator + human approval; customer agent must not give medical advice
-- [ ] Backups: nightly DB dump + artifact payloads; one restore drill actually performed
-- [ ] Pseudonymous visitor refs for chat; no PII in `llm_invocations` or logs; retention policy documented
+- [x] Backups: nightly DB dump + artifact payloads; one restore drill actually performed
+- [x] Pseudonymous visitor refs for chat; no PII in `llm_invocations` or logs; retention policy documented
 
 Note plainly: this is engineering risk reduction, not legal advice. Have a German lawyer review the Impressum,
 Datenschutz and the customer-agent disclaimer templates once, then reuse them per client.

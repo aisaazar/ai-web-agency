@@ -7,11 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from agency.api.auth_dependencies import require_role_or_legacy
-from agency.api.dashboard_schemas import DashboardOverviewOut
+from agency.api.dashboard_schemas import DashboardLLMCostOut, DashboardOverviewOut
 from agency.api.dependencies import get_db
 from agency.db.models import Artifact, Client, Deploy, LeadSubmission, Org, Site, SiteVersion
 from agency.db.workflow_models import PipelineRun
-from agency.services.dashboard_service import get_overview
+from agency.services.dashboard_service import get_llm_cost_report, get_overview
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
@@ -22,6 +22,11 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     def overview(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):
         require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
         return get_overview(session, org_id=org_id)
+
+    @router.get("/llm-cost", response_model=DashboardLLMCostOut)
+    def llm_cost(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):
+        require_role_or_legacy(session, request, org_id=org_id, roles={"owner", "operator", "reviewer"})
+        return get_llm_cost_report(session, org_id=org_id)
 
     @router.get("")
     def dashboard(org_id: UUID | None = None, request: Request = None, session: Session = Depends(db_dependency)):

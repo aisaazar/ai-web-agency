@@ -51,6 +51,20 @@ class DashboardLeadOut(BaseModel):
     received_at: datetime
 
 
+class DashboardLLMClientCostOut(BaseModel):
+    client_id: UUID
+    client_name: str
+    budget_micros: int
+    spent_micros: int
+
+
+class DashboardLLMCostOut(BaseModel):
+    org_id: UUID
+    budget_micros: int
+    spent_micros: int
+    clients: list[DashboardLLMClientCostOut]
+
+
 class DashboardOverviewOut(BaseModel):
     org_id: UUID
     counts: DashboardCounts
