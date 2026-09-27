@@ -204,7 +204,12 @@ def publish_site(
     deployer = provider or get_deployment_provider(preview_deploy.provider)
     if deployer.name != preview_deploy.provider:
         raise DeployError("deployment provider does not match approved preview")
-    promoted = deployer.promote(version.build_hash)
+    promote_ref = (
+        preview_deploy.url
+        if deployer.name == "vercel" and preview_deploy.url
+        else version.build_hash
+    )
+    promoted = deployer.promote(promote_ref)
 
     record = Deploy(
         org_id=org_id,
@@ -299,7 +304,18 @@ def rollback_site(
     if deployer.name != live_deploy.provider:
         raise DeployError("deployment provider does not match live deployment")
 
-    promoted = deployer.rollback(str(current_site.id), target_version.build_hash)
+    rollback_ref = target_version.build_hash
+    if deployer.name == "vercel":
+        target_deploy = session.scalar(select(Deploy).where(
+            Deploy.org_id == org_id,
+            Deploy.site_version_id == target_version.id,
+            Deploy.provider == deployer.name,
+            Deploy.url.is_not(None),
+        ).order_by(Deploy.created_at.desc()))
+        if target_deploy is None:
+            raise DeployError("target Vercel deployment reference not found")
+        rollback_ref = target_version.build_hash
+    promoted = deployer.rollback(str(current_site.id), rollback_ref)
     record = Deploy(
         org_id=org_id,
         site_version_id=target_version.id,
