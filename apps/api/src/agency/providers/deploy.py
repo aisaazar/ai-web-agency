@@ -1,6 +1,7 @@
 """Deployment provider contract and deterministic local-static implementation."""
 from __future__ import annotations
 
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -59,6 +60,8 @@ class LocalStaticDeploymentProvider(DeploymentProvider):
     name: str = "local_static"
 
     def create_preview(self, bundle: BuildBundle) -> DeployResult:
+        if re.fullmatch(r"[a-f0-9]{64}", bundle.build_hash) is None:
+            raise ValueError("build_hash must be a 64-character lowercase hex digest")
         source = bundle.output_dir.resolve()
         if not source.is_dir():
             raise FileNotFoundError(f"build output directory does not exist: {source}")

@@ -239,12 +239,12 @@ if (production) {
     `legal_review_status = ${reviewStatus}`,
   );
 } else if (isFixture) {
-  report.warn(
+  report.note(
     "fixture_policy",
     "meta.is_fixture = true - allowed in development, fatal with --production",
   );
   if (reviewStatus !== "reviewed") {
-    report.warn("legal_review_policy", `legal_review_status = ${reviewStatus} (fixture)`);
+    report.note("legal_review_policy", `legal_review_status = ${reviewStatus} (fixture)`);
   }
 }
 

@@ -27,7 +27,9 @@ class NotifyProvider(Protocol):
     def send(self, notification: Notification) -> None: ...
 ```
 
-`local_static` is the `deploy` free/mock implementation: writes `dist/` and serves it locally. It keeps the
+`local_static` is the `deploy` free/mock implementation: it copies each validated build into an immutable
+`.artifacts/builds/<build_hash>/` bundle, then creates a preview deployment from that exact bundle. The publish
+step promotes that approved preview instead of rebuilding from the mutable workspace output. This keeps the
 whole build+deploy path testable offline, exactly like the studio's `MockProvider`.
 
 ## 2. Registry refactor (replace the `if/elif` chain)

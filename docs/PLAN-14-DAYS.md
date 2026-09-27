@@ -33,7 +33,7 @@ tiny embedded index is enough), no autonomous lead discovery, no client CMS.
 | 6 | Content generation | per-section copy (DE, `Sie`), schema-validated, repair loop, banned-claims validator, length/readability checks, facts-only test |
 | 7 | Design system | 3 token presets (health/corporate/warm); WCAG contrast validator; deterministic preset-selection rule table; fonts self-hosted |
 | 8 | SEO/AEO manifest | generators for meta, canonical, hreflang, sitemap, robots (AI crawlers allowed), llms.txt, JSON-LD from approved facts; OG images at build |
-| 9 | Build + gate + deploy | gate runs all checks and writes `build_validations`; Vercel `create_preview`; post-deploy Playwright smoke; `promote` + `attach_domain`; rollback by `build_hash` |
+| 9 | Build + gate + deploy | gate runs all checks and writes `build_validations`; create an immutable preview from the exact `build_hash`; human preview approval; `promote` + `attach_domain`; rollback by `build_hash` |
 | 10 | Auth + dashboard | per-org login, roles, single scoped accessor; dashboard: clients, pipeline state, artifact diff, approvals, deploy history, rollback; cross-tenant test suite |
 | 11 | Lead capture + notifications | form -> `lead_submissions` -> notify (email/webhook to n8n) -> dashboard list -> CSV export; honeypot + time-trap + Turnstile; consent capture; conversion events |
 | 12 | Customer agent | RAG over approved content only; scope guard, refusal rules, PII redaction, escalation; transcript logging; consent notice; degrades to static FAQ if provider is down |

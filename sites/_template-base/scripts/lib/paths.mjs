@@ -59,9 +59,8 @@ export function createReport(title) {
       results.push({ name, ok: Boolean(ok), detail });
       console.log(`[${ok ? "PASS" : "FAIL"}] ${name}${detail ? ` - ${detail}` : ""}`);
     },
-    warn(name, detail = "") {
-      results.push({ name, ok: true, detail });
-      console.log(`[WARN] ${name}${detail ? ` - ${detail}` : ""}`);
+    note(name, detail = "") {
+      console.log(`[INFO] ${name}${detail ? ` - ${detail}` : ""}`);
     },
     finish() {
       const failed = results.filter((entry) => !entry.ok);

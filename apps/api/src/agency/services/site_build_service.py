@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -29,6 +30,7 @@ class SiteBuildError(RuntimeError):
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 TEMPLATE_ROOT = REPO_ROOT / "sites" / "_template-base"
+BUILD_ROOT = REPO_ROOT / ".artifacts" / "builds"
 
 
 def _build_hash(content: Artifact, design: Artifact) -> str:
@@ -61,6 +63,18 @@ def _rows(org_id, site_version_id, checks: list[ValidationResult]) -> list[Build
         )
         for item in checks
     ]
+
+
+def _persist_build_bundle(build_hash: str) -> Path:
+    source = TEMPLATE_ROOT / "out"
+    if not source.is_dir():
+        raise SiteBuildError("site build output directory does not exist")
+    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+    destination = BUILD_ROOT / build_hash
+    if destination.exists():
+        shutil.rmtree(destination)
+    shutil.copytree(source, destination)
+    return destination
 
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, str]:
@@ -187,6 +201,12 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     session.add_all(_rows(org_id, version.id, checks))
     try:
         evaluate_build_gate(checks)
+    except Exception as exc:
+        pipeline.state = transition("BUILDING", "BUILD_FAILED").to_state
+        raise SiteBuildError(str(exc)) from exc
+
+    try:
+        _persist_build_bundle(build_hash)
     except Exception as exc:
         pipeline.state = transition("BUILDING", "BUILD_FAILED").to_state
         raise SiteBuildError(str(exc)) from exc

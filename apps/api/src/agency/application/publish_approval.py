@@ -1,9 +1,11 @@
 """Publish approval use case: binds the human gate to an immutable build artifact."""
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from agency.db.models import Approval, Artifact
+from agency.db.models import Approval, Artifact, Deploy
 from agency.repositories import ApprovalRepository, PipelineRepository
 from agency.services.pipeline_service import transition
 
@@ -36,6 +38,21 @@ def approve_publish(
 
     if not artifact.build_hash or artifact.payload_json.get("build_hash") != artifact.build_hash:
         raise PublishApprovalError("build artifact hash is missing or inconsistent")
+
+    site_version_ref = artifact.payload_json.get("site_version_id")
+    try:
+        site_version_id = UUID(site_version_ref)
+    except (TypeError, ValueError) as exc:
+        raise PublishApprovalError("build artifact site_version_id is invalid") from exc
+
+    preview_deploy = session.scalar(select(Deploy).where(
+        Deploy.org_id == org_id,
+        Deploy.site_version_id == site_version_id,
+        Deploy.environment == "preview",
+        Deploy.status == "preview_ready",
+    ))
+    if preview_deploy is None:
+        raise PublishApprovalError("preview deployment not found for exact build")
 
     existing = ApprovalRepository(session, org_id).for_artifact(artifact.id)
     if any(item.gate == "PUBLISH" and item.decision == "approved" for item in existing):

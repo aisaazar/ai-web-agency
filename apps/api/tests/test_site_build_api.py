@@ -12,6 +12,14 @@ from agency.db.workflow_models import PipelineRun
 
 
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _fake_persist_build_bundle(build_hash):
+    destination = REPO_ROOT / ".artifacts" / "builds" / build_hash
+    destination.mkdir(parents=True, exist_ok=True)
+    (destination / "index.html").write_text("<!doctype html><html><body>test</body></html>", encoding="utf-8")
+    return destination
 
 
 def _post(app, path, payload):
@@ -80,6 +88,7 @@ def test_site_build_endpoint_reaches_preview_ready(tmp_path, monkeypatch):
 
     import agency.services.site_build_service as build_module
     monkeypatch.setattr(build_module, "_run", fake_run)
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
 
     app = create_app(database_url)
     response = _post(app, "/v1/builds/site", {
@@ -124,6 +133,7 @@ def test_publish_approval_binds_to_exact_build_artifact(tmp_path, monkeypatch):
         "_run",
         lambda command, *, cwd, env: (True, f"mocked: {' '.join(command)}"),
     )
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
 
     app = create_app(database_url)
     built = _post(app, "/v1/builds/site", {
@@ -141,6 +151,13 @@ def test_publish_approval_binds_to_exact_build_artifact(tmp_path, monkeypatch):
         Artifact.build_hash == built.json()["build_hash"],
     ).one()
     session.close()
+
+    preview = _post(app, "/v1/deploys/preview", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "site_version_id": str(built.json()["site_version_id"]),
+    })
+    assert preview.status_code == 201
 
     approved = _post(app, "/v1/publish/approve", {
         "org_id": str(org.id),
@@ -163,6 +180,7 @@ def test_publish_deploy_requires_exact_build_and_reaches_live(tmp_path, monkeypa
         "_run",
         lambda command, *, cwd, env: (True, f"mocked: {' '.join(command)}"),
     )
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
 
     app = create_app(database_url)
     built = _post(app, "/v1/builds/site", {
@@ -180,6 +198,31 @@ def test_publish_deploy_requires_exact_build_and_reaches_live(tmp_path, monkeypa
         Artifact.build_hash == built.json()["build_hash"],
     ).one()
     session.close()
+
+    rejected_approval = _post(app, "/v1/publish/approve", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "build_artifact_id": str(build_artifact.id),
+        "approved_by": "owner@example.com",
+    })
+    assert rejected_approval.status_code == 400
+    assert "preview deployment" in rejected_approval.json()["detail"]
+
+    preview = _post(app, "/v1/deploys/preview", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "site_version_id": str(built.json()["site_version_id"]),
+    })
+    assert preview.status_code == 201
+    assert preview.json()["state"] == "PREVIEW_READY"
+
+    preview_again = _post(app, "/v1/deploys/preview", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "site_version_id": str(built.json()["site_version_id"]),
+    })
+    assert preview_again.status_code == 201
+    assert preview_again.json()["deploy_id"] == preview.json()["deploy_id"]
 
     approved = _post(app, "/v1/publish/approve", {
         "org_id": str(org.id),
