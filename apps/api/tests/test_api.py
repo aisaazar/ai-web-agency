@@ -1,5 +1,6 @@
 import anyio
 import httpx
+import pytest
 
 from agency.api import create_app
 
@@ -15,6 +16,24 @@ def test_health_endpoint():
     response = anyio.run(request)
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_production_rejects_insecure_origin(monkeypatch):
+    monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "http://client.example")
+    monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
+
+    with pytest.raises(RuntimeError, match="HTTPS AGENCY_ALLOWED_ORIGINS"):
+        create_app("sqlite:///:memory:")
+
+
+def test_production_requires_secure_cookie(monkeypatch):
+    monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
+    monkeypatch.setenv("AGENCY_COOKIE_SECURE", "false")
+
+    with pytest.raises(RuntimeError, match="AGENCY_COOKIE_SECURE=true"):
+        create_app("sqlite:///:memory:")
 
 
 def test_cors_allows_configured_site_origin(monkeypatch):

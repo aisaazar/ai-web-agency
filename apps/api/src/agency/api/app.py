@@ -28,7 +28,14 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
     session_factory: sessionmaker = create_session_factory(database_url)
     create_all(database_url)
     app = FastAPI(title="AI Web Agency API", version="0.1.0")
+    environment = os.getenv("AGENCY_ENV", "development").strip().lower()
     origins = [item.strip() for item in os.getenv("AGENCY_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
+    if environment == "production":
+        if not origins or any(origin == "*" or not origin.lower().startswith("https://") for origin in origins):
+            raise RuntimeError("production requires explicit HTTPS AGENCY_ALLOWED_ORIGINS")
+        secure_cookie = os.getenv("AGENCY_COOKIE_SECURE", "").lower() in {"1", "true", "yes"}
+        if not secure_cookie:
+            raise RuntimeError("production requires AGENCY_COOKIE_SECURE=true")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
