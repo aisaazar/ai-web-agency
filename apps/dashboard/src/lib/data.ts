@@ -2,8 +2,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type PipelineState =
-  | "INTAKE" | "FACTS_APPROVED" | "RESEARCH_APPROVED" | "CONTENT_APPROVED"
-  | "DESIGN_APPROVED" | "PREVIEW_READY" | "PREVIEW_APPROVED" | "LIVE";
+  | "INTAKE" | "FACTS_EXTRACTED" | "FACTS_APPROVED"
+  | "RESEARCHING" | "RESEARCH_COMPLETE" | "RESEARCH_APPROVED"
+  | "CONTENT_GENERATING" | "CONTENT_COMPLETE" | "CONTENT_APPROVED"
+  | "DESIGNING" | "DESIGN_COMPLETE" | "DESIGN_APPROVED"
+  | "BUILDING" | "BUILD_COMPLETE" | "BUILD_FAILED"
+  | "PREVIEW_READY" | "PREVIEW_APPROVED"
+  | "PUBLISHING" | "LIVE" | "MAINTENANCE" | "FAILED";
 
 export interface DashboardClient {
   id: string;
@@ -17,7 +22,7 @@ export interface DashboardArtifact {
   id: string;
   type: string;
   revision: number;
-  status: "approved" | "active" | "pending";
+  status: "approved" | "active" | "archived" | "pending";
   buildHash?: string;
 }
 
@@ -44,48 +49,6 @@ export interface DashboardDataAdapter {
   deployments(): Promise<DashboardDeployment[]>;
   leads(): Promise<DashboardLead[]>;
 }
-export const mockDashboardData: DashboardDataAdapter = {
-  clients: async () => [
-    {
-      id: "client-1",
-      name: "Zahnbalance Nürnberg",
-      category: "dental",
-      state: "PREVIEW_READY",
-      updatedAt: "2026-09-27",
-    },
-    {
-      id: "client-2",
-      name: "Nordlicht Physiotherapie",
-      category: "health",
-      state: "CONTENT_APPROVED",
-      updatedAt: "2026-09-26",
-    },
-  ],
-  artifacts: async () => [
-    { id: "art-1", type: "business_facts", revision: 1, status: "approved" },
-    { id: "art-2", type: "content_model", revision: 3, status: "approved" },
-    { id: "art-3", type: "site_build", revision: 1, status: "active", buildHash: "8e7f…a91c" },
-  ],
-  deployments: async () => [
-    {
-      id: "dep-1",
-      client: "Zahnbalance Nürnberg",
-      provider: "local_static",
-      status: "preview",
-      url: "local://8e7f…a91c",
-    },
-  ],
-  leads: async () => [
-    {
-      id: "lead-1",
-      client: "Zahnbalance Nürnberg",
-      name: "Maria K.",
-      email: "maria@example.com",
-      status: "new",
-      createdAt: "2026-09-27 10:22",
-    },
-  ],
-};
 const API_BASE_URL =
   process.env.AGENCY_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -126,11 +89,13 @@ type DashboardOverview = {
 };
 
 export async function fetchDashboard(): Promise<DashboardDataAdapter> {
-  if (!ORG_ID) {
-    return mockDashboardData;
-  }
-
   const sessionCookie = (await cookies()).get("agency_session")?.value;
+  if (!sessionCookie) {
+    redirect("/login");
+  }
+  if (!ORG_ID) {
+    throw new Error("AGENCY_ORG_ID is required for dashboard API access");
+  }
   const response = await fetch(
     `${API_BASE_URL}/v1/dashboard/overview?org_id=${encodeURIComponent(ORG_ID)}`,
     {
@@ -162,7 +127,11 @@ export async function fetchDashboard(): Promise<DashboardDataAdapter> {
         id: artifact.id,
         type: artifact.type,
         revision: artifact.revision,
-        status: artifact.status === "active" ? "active" : "pending",
+        status: artifact.status === "active"
+          ? "active"
+          : artifact.status === "archived"
+            ? "archived"
+            : "pending",
         buildHash: artifact.build_hash ?? undefined,
       })),
     deployments: async () =>
