@@ -100,6 +100,15 @@ export async function POST(request: NextRequest, { params }: Params) {
         site_version_id: String(form.get("site_version_id") ?? ""),
       };
       break;
+    case "attach-domain": {
+      const fqdn = String(form.get("fqdn") ?? "").trim();
+      if (!fqdn || fqdn.length > 253 || /[/:@]/.test(fqdn)) {
+        return NextResponse.json({ detail: "Invalid fqdn" }, { status: 400 });
+      }
+      path = "/v1/deploys/domain";
+      payload = { ...base, fqdn };
+      break;
+    }
     default:
       return NextResponse.json({ detail: "Unknown workflow action" }, { status: 400 });
   }

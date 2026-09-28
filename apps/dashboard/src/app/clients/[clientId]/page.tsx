@@ -121,6 +121,30 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       {latestPreview ? <div className="previewRow"><div><div className="muted">Preview</div><a href={latestPreview.url} target="_blank" rel="noreferrer">{latestPreview.url}</a></div><span className="badge">{latestPreview.status}</span></div> : null}
     </section>
 
+    {detail.state === "LIVE" ? (
+      <section className="card section">
+        <h2 className="sectionTitle">Custom domain</h2>
+        <p className="muted">Attach the client's public DNS hostname to the live site.</p>
+        <form className="domainForm" action={`/api/clients/${clientId}/action`} method="post">
+          <input type="hidden" name="action" value="attach-domain" />
+          <input type="hidden" name="client_id" value={clientId} />
+          <div className="domainRow">
+            <input
+              name="fqdn"
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              placeholder="www.example.com"
+              aria-label="Custom domain"
+              maxLength={253}
+              required
+            />
+            <button className="button" type="submit">Attach domain</button>
+          </div>
+        </form>
+      </section>
+    ) : null}
+
     {detail.state === "LIVE" && rollbackTargets.length > 0 ? (
       <section className="card section">
         <div className="detailHeader"><div><h2 className="sectionTitle">Rollback</h2><div className="muted">Restore a previously approved build for this client.</div></div></div>
