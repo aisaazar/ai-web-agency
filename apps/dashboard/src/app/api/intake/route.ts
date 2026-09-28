@@ -21,6 +21,24 @@ export async function POST(request: NextRequest) {
   }
 
   const form = await request.formData();
+  const rawFacts = String(form.get("facts") ?? "").trim();
+  const factLines = rawFacts.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
+  const facts = factLines.map((line) => {
+    const separator = line.indexOf("=");
+    if (separator <= 0 || separator === line.length - 1) return null;
+    const key = line.slice(0, separator).trim();
+    const value = line.slice(separator + 1).trim();
+    if (!key || !value) return null;
+    return { key, value, value_type: "text", source_kind: "dashboard", source_ref: "manual-intake", confidence: 1 };
+  });
+  if (facts.length === 0 || facts.some((fact) => fact === null)) {
+    return NextResponse.json(
+      { detail: "Provide at least one fact using key=value, one fact per line." },
+      { status: 400 },
+    );
+  }
+  const validFacts = facts.filter((fact): fact is NonNullable<typeof fact> => fact !== null);
+
   const payload = {
     org_id: ORG_ID,
     client_name: String(form.get("client_name") ?? "").trim(),
@@ -29,7 +47,7 @@ export async function POST(request: NextRequest) {
     jurisdiction: String(form.get("jurisdiction") ?? "DE").trim(),
     locale: String(form.get("locale") ?? "de-DE").trim(),
     existing_url: String(form.get("existing_url") ?? "").trim() || null,
-    facts: [],
+    facts: validFacts,
   };
 
   const upstream = await fetch(`${API_BASE_URL}/v1/intake`, {
