@@ -50,6 +50,18 @@ def test_lead_api_persists_a_real_lead(tmp_path):
     assert body["status"] == "new"
 
 
+def test_lead_api_time_trap_marks_fast_submission_as_spam(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    site = _seed(database_url)
+    response = _post(create_app(database_url), {
+        "site_id": str(site.id), "name": "Bot", "email": "bot@example.com",
+        "message": "Automated submission", "consent": True,
+        "form_started_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+    })
+    assert response.status_code == 201
+    assert response.json()["status"] == "spam"
+
+
 def test_lead_api_rejects_missing_consent(tmp_path):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
     site = _seed(database_url)

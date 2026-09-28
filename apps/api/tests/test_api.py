@@ -36,6 +36,16 @@ def test_production_requires_secure_cookie(monkeypatch):
         create_app("sqlite:///:memory:")
 
 
+def test_production_requires_turnstile_secret(monkeypatch):
+    monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
+    monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
+    monkeypatch.delenv("AGENCY_TURNSTILE_SECRET", raising=False)
+
+    with pytest.raises(RuntimeError, match="AGENCY_TURNSTILE_SECRET"):
+        create_app("sqlite:///:memory:")
+
+
 def test_cors_allows_configured_site_origin(monkeypatch):
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
     app = create_app("sqlite:///:memory:")
