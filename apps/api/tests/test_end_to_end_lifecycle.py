@@ -229,6 +229,38 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
     )
     assert published.status_code == 201
     assert published.json()["state"] == "LIVE"
+    deploy_id = published.json()["deploy_id"]
+
+    domain = _request(
+        app,
+        "POST",
+        "/v1/deploys/domain",
+        json={
+            "org_id": org_id,
+            "client_id": client_id,
+            "fqdn": "WWW.Example.DE.",
+        },
+    )
+    assert domain.status_code == 200
+    assert domain.json() == {
+        "provider": "local_static",
+        "fqdn": "www.example.de",
+        "status": "attached",
+    }
+
+    logs = _request(
+        app,
+        "POST",
+        "/v1/deploys/logs",
+        json={
+            "org_id": org_id,
+            "client_id": client_id,
+            "deploy_id": deploy_id,
+        },
+    )
+    assert logs.status_code == 200
+    assert logs.json()["deploy_id"] == deploy_id
+    assert logs.json()["logs"].startswith("local_static build=")
 
     lead = _request(
         app,
