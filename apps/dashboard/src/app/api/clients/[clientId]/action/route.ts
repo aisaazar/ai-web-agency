@@ -75,26 +75,29 @@ export async function POST(request: NextRequest, { params }: Params) {
         feedback: null,
       };
       break;
-    case "preview":
+    case "preview": {
+      const siteVersionId = String(form.get("site_version_id") ?? "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(siteVersionId)) {
+        return NextResponse.json({ detail: "Invalid site_version_id" }, { status: 400 });
+      }
       path = "/v1/deploys/preview";
-      payload = {
-        ...base,
-        site_version_id: String(form.get("site_version_id") ?? ""),
-        provider: "local_static",
-      };
+      payload = { ...base, site_version_id: siteVersionId, provider: "local_static" };
       break;
+    }
+    case "rollback": {
+      const buildHash = String(form.get("build_hash") ?? "").toLowerCase();
+      if (!/^[a-f0-9]{64}$/.test(buildHash)) {
+        return NextResponse.json({ detail: "Invalid build_hash" }, { status: 400 });
+      }
+      path = "/v1/deploys/rollback";
+      payload = { ...base, build_hash: buildHash };
+      break;
+    }
     case "publish":
       path = "/v1/deploys/publish";
       payload = {
         ...base,
         site_version_id: String(form.get("site_version_id") ?? ""),
-      };
-      break;
-    case "rollback":
-      path = "/v1/deploys/rollback";
-      payload = {
-        ...base,
-        build_hash: String(form.get("build_hash") ?? ""),
       };
       break;
     default:
