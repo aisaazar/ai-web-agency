@@ -22,6 +22,7 @@ from agency.api.publish import build_router as build_publish_router
 from agency.api.research import build_router as build_research_router
 from agency.db.session import create_all, create_session_factory
 from agency.services.csrf_service import CSRF_COOKIE, CSRF_HEADER, valid_csrf_token
+from agency.services.rate_limit_service import RateLimitError, enforce
 
 
 def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
@@ -36,6 +37,8 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
         secure_cookie = os.getenv("AGENCY_COOKIE_SECURE", "").lower() in {"1", "true", "yes"}
         if not secure_cookie:
             raise RuntimeError("production requires AGENCY_COOKIE_SECURE=true")
+        if not os.getenv("AGENCY_TURNSTILE_SECRET", "").strip():
+            raise RuntimeError("production requires AGENCY_TURNSTILE_SECRET")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -43,6 +46,21 @@ def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["*", CSRF_HEADER],
     )
+
+    @app.middleware("http")
+    async def public_rate_limit(request: Request, call_next):
+        path = request.url.path
+        if request.method == "POST" and (path == "/v1/leads" or path.startswith("/v1/agent/")):
+            host = request.client.host if request.client else "unknown"
+            key = f"{host}:{path.split('/')[1:4]}"
+            try:
+                if path == "/v1/leads":
+                    enforce(key, limit=20, window_seconds=60)
+                else:
+                    enforce(key, limit=60, window_seconds=60)
+            except RateLimitError:
+                return JSONResponse(status_code=429, content={"detail": "rate limit exceeded"}, headers={"Retry-After": "60"})
+        return await call_next(request)
 
     @app.middleware("http")
     async def csrf_protection(request: Request, call_next):

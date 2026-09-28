@@ -18,6 +18,7 @@ from agency.db.models import Client, LeadEvent, LeadSubmission, Site
 from agency.services.audit_service import record_audit
 from agency.providers.notify import Notification, NotifyProvider, get_notify_provider
 from agency.repositories import LeadRepository
+from agency.services.turnstile_service import verify as verify_turnstile
 
 
 def _queue_lead_notification(
@@ -49,9 +50,12 @@ def create_lead(
     payload: LeadSubmissionIn,
     *,
     notify_provider: NotifyProvider | None = None,
+    remote_ip: str | None = None,
 ) -> LeadSubmissionOut:
     if not payload.consent:
         raise HTTPException(status_code=400, detail="Consent is required")
+    if not verify_turnstile(payload.turnstile_token, remote_ip):
+        raise HTTPException(status_code=400, detail="Turnstile verification failed")
 
     site = session.get(Site, payload.site_id)
     if site is None:
@@ -71,7 +75,8 @@ def create_lead(
         if started.tzinfo is None:
             started = started.replace(tzinfo=timezone.utc)
         if (now - started).total_seconds() < 2:
-            spam_score = 10
+            spam_score = 100
+            lead_status = "spam"
 
     lead = LeadSubmission(
         org_id=site.org_id,

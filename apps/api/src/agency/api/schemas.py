@@ -20,6 +20,7 @@ class LeadSubmissionIn(BaseModel):
     consent: bool
     website: str = Field(default="", max_length=200)
     form_started_at: datetime | None = None
+    turnstile_token: str | None = Field(default=None, max_length=2048)
     utm: dict[str, str] | None = None
 
 

@@ -30,8 +30,9 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     lead_editor = role_dependency(session_factory, {"owner", "operator"})
 
     @router.post("", response_model=LeadSubmissionOut, status_code=201)
-    def submit_lead(payload: LeadSubmissionIn, session: Session = Depends(db_dependency)):
-        return create_lead(session, payload)
+    def submit_lead(payload: LeadSubmissionIn, request: Request, session: Session = Depends(db_dependency)):
+        remote_ip = request.client.host if request.client else None
+        return create_lead(session, payload, remote_ip=remote_ip)
 
     @router.get("", response_model=list[LeadListItemOut])
     def list_all(org_id: UUID, request: Request, session: Session = Depends(db_dependency)):

@@ -24,6 +24,8 @@
     "typecheck:dashboard": "npm run typecheck --workspace @ai-web-agency/dashboard",
     "build:dashboard": "npm run build --workspace @ai-web-agency/dashboard",
     "test:dashboard": "npm run typecheck:dashboard && npm run build:dashboard",
+    "db:backup": "node scripts/py.mjs scripts/sqlite_backup.py backup agency.db .artifacts/backups/agency.db",
+    "db:restore": "node scripts/py.mjs scripts/sqlite_backup.py restore .artifacts/backups/agency.db agency-restored.db",
     "test": "npm run test:python && npm run test:site && npm run test:dashboard",
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",

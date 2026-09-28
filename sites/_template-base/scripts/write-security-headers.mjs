@@ -21,6 +21,7 @@ function originOf(value, name) {
 
 const origins = [originOf(agentApi, "NEXT_PUBLIC_AGENCY_AGENT_API_URL"),
   originOf(leadApi, "NEXT_PUBLIC_AGENCY_LEAD_API_URL")].filter(Boolean);
+const turnstileOrigin = "https://challenges.cloudflare.com";
 
 function inlineScriptHashes() {
   const hashes = new Set();
@@ -43,13 +44,14 @@ function inlineScriptHashes() {
 }
 
 fs.mkdirSync(outDir, { recursive: true });
-const scriptSources = ["'self'", ...inlineScriptHashes()];
-const connectSrc = ["'self'", ...origins];
+const scriptSources = ["'self'", ...inlineScriptHashes(), turnstileOrigin];
+const connectSrc = ["'self'", ...origins, turnstileOrigin];
+const frameSrc = ["'self'", turnstileOrigin];
 const contentSecurityPolicy = [
   "default-src 'self'", "base-uri 'self'", "form-action 'self'",
   "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:",
   "font-src 'self'", "style-src 'self'",
-  `script-src ${scriptSources.join(" ")}`, `connect-src ${connectSrc.join(" ")}`,
+  `script-src ${scriptSources.join(" ")}`, `connect-src ${connectSrc.join(" ")}`, `frame-src ${frameSrc.join(" ")}`,
 ].join("; ");
 
 const config = {

@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { ContentModel } from "@ai-web-agency/contracts";
+import { TurnstileField } from "./TurnstileField";
 
 type ContactForm = ContentModel["contact"]["form"];
 
@@ -27,6 +28,7 @@ export function LeadForm({ form }: { form: ContactForm }) {
   const [state, setState] = useState<"idle" | "submitting" | "success" | "failure">("idle");
   const [startedAt] = useState(() => new Date().toISOString());
   const [honeypot, setHoneypot] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   const update =
@@ -45,6 +47,7 @@ export function LeadForm({ form }: { form: ContactForm }) {
     else if (!EMAIL_PATTERN.test(values.email.trim())) nextErrors.push("email:format");
     if (values.message.trim().length === 0) nextErrors.push("message");
     if (!values.consent) nextErrors.push("consent");
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) nextErrors.push("turnstile");
     return nextErrors;
   }
 
@@ -76,6 +79,7 @@ export function LeadForm({ form }: { form: ContactForm }) {
           consent: values.consent,
           website: honeypot,
           form_started_at: startedAt,
+          turnstile_token: turnstileToken || null,
         }),
       });
       if (!response.ok) throw new Error(`lead request failed: ${response.status}`);
@@ -83,6 +87,7 @@ export function LeadForm({ form }: { form: ContactForm }) {
       setErrors([]);
       setValues(EMPTY_VALUES);
       setHoneypot("");
+      setTurnstileToken("");
     } catch {
       setState("failure");
     }
@@ -117,6 +122,8 @@ export function LeadForm({ form }: { form: ContactForm }) {
       <div><label htmlFor={FIELD_IDS.message} className="block text-sm font-medium text-ink">{form.labels.message} <span aria-hidden="true">*</span></label><textarea id={FIELD_IDS.message} name="message" rows={5} required value={values.message} onChange={update("message")} aria-invalid={hasError("message")} aria-describedby={hasError("message") ? "lead-message-error" : undefined} className={INPUT_CLASS} />{hasError("message") ? <p id="lead-message-error" className="mt-1 text-sm text-accent-700">{form.labels.error_required}</p> : null}</div>
 
       <div className="hidden" aria-hidden="true"><label htmlFor={FIELD_IDS.honeypot}>Website</label><input id={FIELD_IDS.honeypot} name="website" type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} /></div>
+
+      <TurnstileField onToken={setTurnstileToken} />
 
       <div className="flex items-start gap-3"><input id={FIELD_IDS.consent} name="consent" type="checkbox" required checked={values.consent} onChange={update("consent")} aria-invalid={hasError("consent")} aria-describedby={hasError("consent") ? "lead-consent-error" : undefined} className="mt-1 h-4 w-4" /><label htmlFor={FIELD_IDS.consent} className="text-sm text-ink-muted">{form.consent_label}</label></div>
       {hasError("consent") ? <p id="lead-consent-error" className="text-sm text-accent-700">{form.labels.error_required}</p> : null}
