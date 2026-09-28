@@ -305,6 +305,28 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
   };
 }
 
+export async function fetchDeploymentLogs(clientId: string, deployId: string): Promise<string> {
+  const sessionCookie = (await cookies()).get("agency_session")?.value;
+  if (!sessionCookie) redirect("/login");
+  if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
+
+  const response = await fetch(API_BASE_URL + "/v1/deploys/logs", {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: "agency_session=" + sessionCookie,
+    },
+    body: JSON.stringify({ org_id: ORG_ID, client_id: clientId, deploy_id: deployId }),
+  });
+
+  if (response.status === 401) redirect("/login");
+  if (!response.ok) throw new Error("Deployment logs request failed: " + response.status);
+
+  const data = await response.json() as { logs?: string };
+  return data.logs ?? "";
+}
+
 
 export async function fetchLLMCost(): Promise<DashboardLLMCost> {
   const sessionCookie = (await cookies()).get("agency_session")?.value;

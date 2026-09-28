@@ -116,7 +116,15 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
     <section className="card section"><h2 className="sectionTitle">Delivery</h2>
       <div className="grid two">
         <div><div className="muted">Current build</div><div className="mono">{detail.currentBuildHash ?? "—"}</div></div>
-        <div><div className="muted">Latest deployment</div><div>{detail.deployments[0]?.url || "—"}</div></div>
+        <div>
+          <div className="muted">Latest deployment</div>
+          <div>{detail.deployments[0]?.url || "—"}</div>
+          {detail.deployments[0] ? (
+            <Link className="button secondaryButton" href={`/clients/${clientId}/deployments/${detail.deployments[0].id}`} style={{ marginTop: 10 }}>
+              View deployment logs
+            </Link>
+          ) : null}
+        </div>
       </div>
       {latestPreview ? <div className="previewRow"><div><div className="muted">Preview</div><a href={latestPreview.url} target="_blank" rel="noreferrer">{latestPreview.url}</a></div><span className="badge">{latestPreview.status}</span></div> : null}
     </section>
