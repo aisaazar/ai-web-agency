@@ -71,7 +71,11 @@ const args = [
   "--chrome-flags=--headless=new",
   "--only-categories=performance,accessibility,seo",
 ];
-const child = spawn("npx", args, { cwd: root, shell: true, stdio: ["ignore", "pipe", "pipe"] });
+const lighthouseCli = path.join(root, "node_modules", "lighthouse", "cli", "index.js");
+const child = spawn(process.execPath, [lighthouseCli, ...args.slice(1)], {
+  cwd: root,
+  stdio: ["ignore", "pipe", "pipe"],
+});
 let stdout = "";
 let stderr = "";
 child.stdout.on("data", (chunk) => { stdout += chunk; });
