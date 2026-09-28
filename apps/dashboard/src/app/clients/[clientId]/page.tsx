@@ -1,0 +1,111 @@
+import Link from "next/link";
+import { fetchClientDetail } from "../../../lib/data";
+
+export const dynamic = "force-dynamic";
+
+type Props = {
+  params: Promise<{ clientId: string }>;
+  searchParams: Promise<{ result?: string; error?: string }>;
+};
+
+const stages = [
+  ["INTAKE", "Intake"], ["FACTS_EXTRACTED", "Facts review"], ["FACTS_APPROVED", "Facts approved"],
+  ["RESEARCHING", "Research"], ["RESEARCH_COMPLETE", "Research review"], ["RESEARCH_APPROVED", "Research approved"],
+  ["CONTENT_GENERATING", "Content"], ["CONTENT_COMPLETE", "Content review"], ["CONTENT_APPROVED", "Content approved"],
+  ["DESIGNING", "Design"], ["DESIGN_APPROVED", "Design approved"], ["BUILDING", "Build"],
+  ["BUILD_COMPLETE", "Build complete"], ["PREVIEW_READY", "Preview review"], ["PREVIEW_APPROVED", "Preview approved"],
+  ["PUBLISHING", "Publishing"], ["LIVE", "Live"],
+] as const;
+
+function ActionForm({ action, clientId, hidden = {}, children }: {
+  action: string; clientId: string; hidden?: Record<string, string>; children: React.ReactNode;
+}) {
+  return (
+    <form action={`/api/clients/${clientId}/action`} method="post">
+      <input type="hidden" name="action" value={action} />
+      <input type="hidden" name="client_id" value={clientId} />
+      {Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+      <button className="button" type="submit">{children}</button>
+    </form>
+  );
+}
+
+function findArtifact(detail: Awaited<ReturnType<typeof fetchClientDetail>>, type: string) {
+  return detail.artifacts.find((item) => item.type === type);
+}
+
+export default async function ClientDetailPage({ params, searchParams }: Props) {
+  const { clientId } = await params;
+  const query = await searchParams;
+  const detail = await fetchClientDetail(clientId);
+
+  const research = findArtifact(detail, "research_report");
+  const content = findArtifact(detail, "content_model");
+  const design = findArtifact(detail, "design_plan");
+  const build = findArtifact(detail, "site_build");
+  const siteVersion = detail.siteVersions[0];
+
+  let action: React.ReactNode = null;
+  switch (detail.state) {
+    case "FACTS_EXTRACTED": action = <ActionForm action="approve-facts" clientId={clientId}>Approve facts</ActionForm>; break;
+    case "FACTS_APPROVED": action = <ActionForm action="research" clientId={clientId}>Run research</ActionForm>; break;
+    case "RESEARCH_COMPLETE":
+      if (research) action = <ActionForm action="approve-research" clientId={clientId} hidden={{ artifact_id: research.id }}>Approve research</ActionForm>;
+      break;
+    case "RESEARCH_APPROVED":
+      action = <ActionForm action="generate-content" clientId={clientId} hidden={{ provider: "local" }}>Generate content with local AI</ActionForm>;
+      break;
+    case "CONTENT_COMPLETE":
+      if (content) action = <ActionForm action="approve-content" clientId={clientId} hidden={{ artifact_id: content.id }}>Approve content</ActionForm>;
+      break;
+    case "CONTENT_APPROVED":
+      if (content) action = <ActionForm action="design" clientId={clientId} hidden={{ artifact_id: content.id }}>Create design</ActionForm>;
+      break;
+    case "DESIGN_APPROVED":
+      if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;
+      break;
+    case "PREVIEW_READY":
+      if (build) action = <ActionForm action="approve-publish" clientId={clientId} hidden={{ artifact_id: build.id }}>Approve preview</ActionForm>;
+      break;
+    case "PREVIEW_APPROVED":
+      if (siteVersion) action = <ActionForm action="publish" clientId={clientId} hidden={{ site_version_id: siteVersion.id }}>Publish site</ActionForm>;
+      break;
+  }
+
+  return <>
+    <div className="topbar">
+      <div><div className="eyebrow">Client Control Center</div><h1>{detail.name}</h1><div className="muted">{detail.category} · {detail.state}</div></div>
+      <Link className="button secondaryButton" href="/clients">Back</Link>
+    </div>
+    {query.error ? <p className="error">{query.error}</p> : null}
+    {query.result ? <p className="success">Action completed: {query.result.replaceAll("-", " ")}</p> : null}
+
+    <section className="card">
+      <div className="detailHeader">
+        <div><div className="muted">Current pipeline state</div><div className="detailState">{detail.state}</div></div>
+        {action ?? <span className="muted">No action available at this state.</span>}
+      </div>
+      <div className="stageGrid">
+        {stages.map(([state, label]) => <div className={`stage ${state === detail.state ? "current" : ""}`} key={state}><span className="stageDot" aria-hidden="true" />{label}</div>)}
+      </div>
+    </section>
+
+    <div className="grid two section">
+      <section className="card"><h2 className="sectionTitle">Artifacts</h2><div className="list">
+        {detail.artifacts.map((item) => <div className="row" key={item.id}><div><strong>{item.type}</strong><div className="muted">Revision {item.revision}</div></div><span className="badge">{item.status}</span></div>)}
+        {detail.artifacts.length === 0 ? <p className="muted">No artifacts yet.</p> : null}
+      </div></section>
+      <section className="card"><h2 className="sectionTitle">Approval trail</h2><div className="list">
+        {detail.approvals.map((item) => <div className="row" key={item.id}><div><strong>{item.gate}</strong><div className="muted">{item.approvedBy ?? "—"}</div></div><span className="badge">{item.decision}</span></div>)}
+        {detail.approvals.length === 0 ? <p className="muted">No approvals yet.</p> : null}
+      </div></section>
+    </div>
+
+    <section className="card section"><h2 className="sectionTitle">Delivery</h2>
+      <div className="grid two">
+        <div><div className="muted">Current build</div><div className="mono">{detail.currentBuildHash ?? "—"}</div></div>
+        <div><div className="muted">Latest deployment</div><div>{detail.deployments[0]?.url || "—"}</div></div>
+      </div>
+    </section>
+  </>;
+}

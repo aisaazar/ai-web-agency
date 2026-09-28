@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agency.db.llm_budget_models import ClientLLMBudget
-from agency.db.models import Artifact, Client, Deploy, LLMInvocation, LeadSubmission, Org, Site, SiteVersion
+from agency.db.models import Approval, Artifact, Client, Deploy, LLMInvocation, LeadSubmission, Org, Site, SiteVersion
 from agency.db.workflow_models import PipelineRun
 
 
@@ -104,6 +104,135 @@ def get_overview(session: Session, *, org_id: UUID) -> dict:
             for lead in leads
         ],
     }
+
+def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dict:
+    client = session.scalar(
+        select(Client).where(Client.org_id == org_id, Client.id == client_id)
+    )
+    if client is None:
+        raise ValueError("client not found")
+
+    pipeline = session.scalars(
+        select(PipelineRun)
+        .where(PipelineRun.org_id == org_id, PipelineRun.client_id == client_id)
+        .order_by(PipelineRun.created_at.desc())
+    ).first()
+    state = pipeline.state if pipeline is not None else "INTAKE"
+
+    all_artifacts = list(
+        session.scalars(
+            select(Artifact)
+            .where(Artifact.org_id == org_id)
+            .order_by(Artifact.created_at.desc())
+        )
+    )
+    by_id = {str(artifact.id): artifact for artifact in all_artifacts}
+
+    def belongs(artifact: Artifact) -> bool:
+        payload_client = artifact.payload_json.get("client_id")
+        if payload_client == str(client_id):
+            return True
+        input_id = artifact.input_artifact_id
+        if input_id and str(input_id) in by_id:
+            source = by_id[str(input_id)]
+            return source.payload_json.get("client_id") == str(client_id)
+        return False
+
+    artifacts = [artifact for artifact in all_artifacts if belongs(artifact)]
+    artifact_ids = {artifact.id for artifact in artifacts}
+
+    approvals = list(
+        session.scalars(
+            select(Approval)
+            .where(
+                Approval.org_id == org_id,
+                Approval.artifact_id.in_(artifact_ids),
+            )
+            .order_by(Approval.created_at.asc())
+        )
+    ) if artifact_ids else []
+
+    site = session.scalar(
+        select(Site).where(Site.org_id == org_id, Site.client_id == client_id)
+    )
+    site_versions = list(
+        session.scalars(
+            select(SiteVersion)
+            .where(SiteVersion.org_id == org_id, SiteVersion.site_id == site.id)
+            .order_by(SiteVersion.created_at.desc())
+        )
+    ) if site else []
+
+    deployments = list(
+        session.scalars(
+            select(Deploy)
+            .where(
+                Deploy.org_id == org_id,
+                Deploy.site_version_id.in_([version.id for version in site_versions]),
+            )
+            .order_by(Deploy.created_at.desc())
+        )
+    ) if site_versions else []
+
+    return {
+        "org_id": org_id,
+        "client": {
+            "id": client.id,
+            "name": client.name,
+            "category": client.category,
+            "state": state,
+            "updated_at": client.updated_at,
+            "live_url": site.live_url if site else None,
+            "current_build_hash": site.current_build_hash if site else None,
+        },
+        "artifacts": [
+            {
+                "id": artifact.id,
+                "type": artifact.artifact_type,
+                "revision": artifact.revision,
+                "status": "active" if artifact.is_active else "archived",
+                "build_hash": artifact.build_hash,
+                "updated_at": artifact.updated_at,
+            }
+            for artifact in artifacts
+        ],
+        "approvals": [
+            {
+                "id": approval.id,
+                "artifact_id": approval.artifact_id,
+                "gate": approval.gate,
+                "decision": approval.decision,
+                "feedback": approval.feedback,
+                "approved_by": approval.approved_by,
+                "created_at": approval.created_at,
+            }
+            for approval in approvals
+        ],
+        "site_versions": [
+            {
+                "id": version.id,
+                "build_hash": version.build_hash,
+                "content_artifact_id": version.content_artifact_id,
+                "template_version": version.template_version,
+                "design_preset_id": version.design_preset_id,
+                "created_at": version.created_at,
+            }
+            for version in site_versions
+        ],
+        "deployments": [
+            {
+                "id": deployment.id,
+                "client": client.name,
+                "provider": deployment.provider,
+                "environment": deployment.environment,
+                "status": deployment.status,
+                "url": deployment.url,
+                "created_at": deployment.created_at,
+            }
+            for deployment in deployments
+        ],
+    }
+
 
 def get_llm_cost_report(session: Session, *, org_id: UUID) -> dict:
     org = session.get(Org, org_id)

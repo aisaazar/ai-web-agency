@@ -85,3 +85,107 @@ def test_dashboard_llm_cost_report_is_org_scoped(tmp_path):
             "spent_micros": 123,
         }
     ]
+def test_dashboard_client_detail_is_tenant_scoped_and_traces_artifacts(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'dashboard-detail.db'}"
+    app = create_app(database_url)
+    session = create_session_factory(database_url)()
+
+    org = Org(name="Detail Agency", slug="detail-agency")
+    other_org = Org(name="Other Agency", slug="other-agency")
+    session.add_all([org, other_org])
+    session.flush()
+
+    from agency.db.models import Approval, Artifact, Client, Deploy, Site, SiteVersion
+    from agency.db.workflow_models import PipelineRun
+
+    client = Client(org_id=org.id, name="Dental", slug="dental", category="dental")
+    other_client = Client(org_id=other_org.id, name="Other Dental", slug="other-dental", category="dental")
+    session.add_all([client, other_client])
+    session.flush()
+
+    session.add(PipelineRun(org_id=org.id, client_id=client.id, state="CONTENT_COMPLETE"))
+    facts = Artifact(
+        org_id=org.id,
+        artifact_type="business_facts",
+        schema_version="1.0.0",
+        payload_json={"client_id": str(client.id), "facts": []},
+        revision=1,
+        is_active=True,
+    )
+    session.add(facts)
+    session.flush()
+
+    content = Artifact(
+        org_id=org.id,
+        artifact_type="content_model",
+        schema_version="1.0.0",
+        payload_json={"content_schema_version": "1.0.0"},
+        input_artifact_id=facts.id,
+        revision=1,
+        is_active=True,
+    )
+    unrelated = Artifact(
+        org_id=other_org.id,
+        artifact_type="business_facts",
+        schema_version="1.0.0",
+        payload_json={"client_id": str(other_client.id), "facts": []},
+        revision=1,
+        is_active=True,
+    )
+    session.add_all([content, unrelated])
+    session.flush()
+
+    session.add(Approval(
+        org_id=org.id,
+        artifact_id=content.id,
+        gate="CONTENT",
+        decision="approved",
+        approved_by="reviewer",
+    ))
+
+    site = Site(
+        org_id=org.id,
+        client_id=client.id,
+        template_id="_template-base",
+        design_preset_id="health",
+    )
+    session.add(site)
+    session.flush()
+    version = SiteVersion(
+        org_id=org.id,
+        site_id=site.id,
+        build_hash="a" * 64,
+        content_artifact_id=content.id,
+        content_schema_version="1.0.0",
+        template_version="1.0.0",
+        design_preset_id="health",
+    )
+    session.add(version)
+    session.flush()
+    session.add(Deploy(
+        org_id=org.id,
+        site_version_id=version.id,
+        environment="preview",
+        provider="local_static",
+        status="preview",
+        url="local://preview",
+    ))
+    session.commit()
+    session.close()
+
+    async def request(path):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.get(path)
+
+    response = anyio.run(request, f"/v1/dashboard/clients/{client.id}?org_id={org.id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["client"]["state"] == "CONTENT_COMPLETE"
+    assert {item["type"] for item in body["artifacts"]} == {"business_facts", "content_model"}
+    assert body["approvals"][0]["gate"] == "CONTENT"
+    assert body["site_versions"][0]["build_hash"] == "a" * 64
+    assert body["deployments"][0]["status"] == "preview"
+
+    blocked = anyio.run(request, f"/v1/dashboard/clients/{other_client.id}?org_id={org.id}")
+    assert blocked.status_code == 404

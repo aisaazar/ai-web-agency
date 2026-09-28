@@ -49,6 +49,43 @@ export interface DashboardDataAdapter {
   deployments(): Promise<DashboardDeployment[]>;
   leads(): Promise<DashboardLead[]>;
 }
+
+export interface DashboardClientDetailArtifact {
+  id: string;
+  type: string;
+  revision: number;
+  status: string;
+  buildHash?: string;
+  updatedAt: string;
+}
+
+export interface DashboardApproval {
+  id: string;
+  artifactId: string;
+  gate: string;
+  decision: string;
+  feedback?: string;
+  approvedBy?: string;
+  createdAt: string;
+}
+
+export interface DashboardSiteVersion {
+  id: string;
+  buildHash: string;
+  contentArtifactId: string;
+  templateVersion: string;
+  designPresetId: string;
+  createdAt: string;
+}
+
+export interface DashboardClientDetail extends DashboardClient {
+  liveUrl?: string;
+  currentBuildHash?: string;
+  artifacts: DashboardClientDetailArtifact[];
+  approvals: DashboardApproval[];
+  siteVersions: DashboardSiteVersion[];
+  deployments: DashboardDeployment[];
+}
 const API_BASE_URL =
   process.env.AGENCY_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -87,6 +124,122 @@ type DashboardOverview = {
     received_at: string;
   }>;
 };
+
+export async function fetchClientDetail(clientId: string): Promise<DashboardClientDetail> {
+  const sessionCookie = (await cookies()).get("agency_session")?.value;
+  if (!sessionCookie) {
+    redirect("/login");
+  }
+  if (!ORG_ID) {
+    throw new Error("AGENCY_ORG_ID is required for dashboard API access");
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/v1/dashboard/clients/${encodeURIComponent(clientId)}?org_id=${encodeURIComponent(ORG_ID)}`,
+    {
+      cache: "no-store",
+      headers: { Cookie: `agency_session=${sessionCookie}` },
+    },
+  );
+
+  if (response.status === 401) {
+    redirect("/login");
+  }
+  if (!response.ok) {
+    throw new Error(`Client detail request failed: ${response.status}`);
+  }
+
+  const data = await response.json() as {
+    client: {
+      id: string;
+      name: string;
+      category: string;
+      state: PipelineState;
+      updated_at: string;
+      live_url?: string | null;
+      current_build_hash?: string | null;
+    };
+    artifacts: Array<{
+      id: string;
+      type: string;
+      revision: number;
+      status: string;
+      build_hash?: string | null;
+      updated_at: string;
+    }>;
+    approvals: Array<{
+      id: string;
+      artifact_id: string;
+      gate: string;
+      decision: string;
+      feedback?: string | null;
+      approved_by?: string | null;
+      created_at: string;
+    }>;
+    site_versions: Array<{
+      id: string;
+      build_hash: string;
+      content_artifact_id: string;
+      template_version: string;
+      design_preset_id: string;
+      created_at: string;
+    }>;
+    deployments: Array<{
+      id: string;
+      client: string;
+      provider: string;
+      status: string;
+      url?: string | null;
+    }>;
+  };
+
+  return {
+    id: data.client.id,
+    name: data.client.name,
+    category: data.client.category,
+    state: data.client.state,
+    updatedAt: data.client.updated_at,
+    liveUrl: data.client.live_url ?? undefined,
+    currentBuildHash: data.client.current_build_hash ?? undefined,
+    artifacts: data.artifacts.map((item) => ({
+      id: item.id,
+      type: item.type,
+      revision: item.revision,
+      status: item.status,
+      buildHash: item.build_hash ?? undefined,
+      updatedAt: item.updated_at,
+    })),
+    approvals: data.approvals.map((item) => ({
+      id: item.id,
+      artifactId: item.artifact_id,
+      gate: item.gate,
+      decision: item.decision,
+      feedback: item.feedback ?? undefined,
+      approvedBy: item.approved_by ?? undefined,
+      createdAt: item.created_at,
+    })),
+    siteVersions: data.site_versions.map((item) => ({
+      id: item.id,
+      buildHash: item.build_hash,
+      contentArtifactId: item.content_artifact_id,
+      templateVersion: item.template_version,
+      designPresetId: item.design_preset_id,
+      createdAt: item.created_at,
+    })),
+    deployments: data.deployments.map((item) => ({
+      id: item.id,
+      client: item.client,
+      provider: item.provider,
+      status: item.status === "live"
+        ? "live"
+        : item.status === "failed"
+          ? "failed"
+          : "preview",
+      url: item.url ?? "",
+    })),
+  };
+}
+
 
 export async function fetchDashboard(): Promise<DashboardDataAdapter> {
   const sessionCookie = (await cookies()).get("agency_session")?.value;
