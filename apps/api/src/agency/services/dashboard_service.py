@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agency.db.llm_budget_models import ClientLLMBudget
-from agency.db.models import Approval, Artifact, Client, Deploy, LLMInvocation, LeadSubmission, Org, Site, SiteVersion
+from agency.db.models import Approval, Artifact, Client, ClientFact, Deploy, LLMInvocation, LeadSubmission, Org, Site, SiteVersion
 from agency.db.workflow_models import PipelineRun
 
 
@@ -119,6 +119,14 @@ def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dic
     ).first()
     state = pipeline.state if pipeline is not None else "INTAKE"
 
+    facts = list(
+        session.scalars(
+            select(ClientFact)
+            .where(ClientFact.org_id == org_id, ClientFact.client_id == client_id)
+            .order_by(ClientFact.key.asc(), ClientFact.created_at.asc())
+        )
+    )
+
     all_artifacts = list(
         session.scalars(
             select(Artifact)
@@ -185,6 +193,21 @@ def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dic
             "live_url": site.live_url if site else None,
             "current_build_hash": site.current_build_hash if site else None,
         },
+        "facts": [
+            {
+                "id": fact.id,
+                "key": fact.key,
+                "value": fact.value,
+                "value_type": fact.value_type,
+                "source_kind": fact.source_kind,
+                "source_ref": fact.source_ref,
+                "confidence": fact.confidence,
+                "status": fact.status,
+                "approved_by": fact.approved_by,
+                "created_at": fact.created_at,
+            }
+            for fact in facts
+        ],
         "artifacts": [
             {
                 "id": artifact.id,

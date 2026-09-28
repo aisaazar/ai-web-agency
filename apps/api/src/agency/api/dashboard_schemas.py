@@ -74,6 +74,19 @@ class DashboardOverviewOut(BaseModel):
     leads: list[DashboardLeadOut]
 
 
+class DashboardClientFactOut(BaseModel):
+    id: UUID
+    key: str
+    value: str
+    value_type: str
+    source_kind: str
+    source_ref: str | None = None
+    confidence: float | None = None
+    status: str
+    approved_by: str | None = None
+    created_at: datetime
+
+
 class DashboardClientDetailArtifactOut(BaseModel):
     id: UUID
     type: str
@@ -105,6 +118,7 @@ class DashboardSiteVersionOut(BaseModel):
 class DashboardClientDetailOut(BaseModel):
     org_id: UUID
     client: DashboardClientOut
+    facts: list[DashboardClientFactOut]
     artifacts: list[DashboardClientDetailArtifactOut]
     approvals: list[DashboardApprovalOut]
     site_versions: list[DashboardSiteVersionOut]

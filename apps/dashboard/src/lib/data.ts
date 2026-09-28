@@ -51,6 +51,19 @@ export interface DashboardDataAdapter {
   leads(): Promise<DashboardLead[]>;
 }
 
+export interface DashboardClientFact {
+  id: string;
+  key: string;
+  value: string;
+  valueType: string;
+  sourceKind: string;
+  sourceRef?: string;
+  confidence?: number;
+  status: string;
+  approvedBy?: string;
+  createdAt: string;
+}
+
 export interface DashboardClientDetailArtifact {
   id: string;
   type: string;
@@ -82,6 +95,7 @@ export interface DashboardSiteVersion {
 export interface DashboardClientDetail extends DashboardClient {
   liveUrl?: string;
   currentBuildHash?: string;
+  facts: DashboardClientFact[];
   artifacts: DashboardClientDetailArtifact[];
   approvals: DashboardApproval[];
   siteVersions: DashboardSiteVersion[];
@@ -160,6 +174,18 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
       live_url?: string | null;
       current_build_hash?: string | null;
     };
+    facts: Array<{
+      id: string;
+      key: string;
+      value: string;
+      value_type: string;
+      source_kind: string;
+      source_ref?: string | null;
+      confidence?: number | null;
+      status: string;
+      approved_by?: string | null;
+      created_at: string;
+    }>;
     artifacts: Array<{
       id: string;
       type: string;
@@ -203,6 +229,18 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
     updatedAt: data.client.updated_at,
     liveUrl: data.client.live_url ?? undefined,
     currentBuildHash: data.client.current_build_hash ?? undefined,
+    facts: data.facts.map((item) => ({
+      id: item.id,
+      key: item.key,
+      value: item.value,
+      valueType: item.value_type,
+      sourceKind: item.source_kind,
+      sourceRef: item.source_ref ?? undefined,
+      confidence: item.confidence ?? undefined,
+      status: item.status,
+      approvedBy: item.approved_by ?? undefined,
+      createdAt: item.created_at,
+    })),
     artifacts: data.artifacts.map((item) => ({
       id: item.id,
       type: item.type,

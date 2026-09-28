@@ -99,6 +99,10 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
     </section>
 
     <div className="grid two section">
+      <section className="card"><h2 className="sectionTitle">Business facts</h2><div className="list">
+        {detail.facts.map((fact) => <div className="row" key={fact.id}><div><strong>{fact.key}</strong><div className="muted">{fact.value}</div><div className="muted">{fact.sourceKind}{fact.sourceRef ? ` · ${fact.sourceRef}` : ""}{fact.confidence != null ? ` · confidence ${fact.confidence}` : ""}</div></div><span className="badge">{fact.status}</span></div>)}
+        {detail.facts.length === 0 ? <p className="muted">No business facts yet. Add facts during client intake before approval.</p> : null}
+      </div></section>
       <section className="card"><h2 className="sectionTitle">Artifacts</h2><div className="list">
         {detail.artifacts.map((item) => <div className="row" key={item.id}><div><strong>{item.type}</strong><div className="muted">Revision {item.revision}</div></div><span className="badge">{item.status}</span></div>)}
         {detail.artifacts.length === 0 ? <p className="muted">No artifacts yet.</p> : null}

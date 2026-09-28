@@ -104,6 +104,18 @@ def test_dashboard_client_detail_is_tenant_scoped_and_traces_artifacts(tmp_path)
     session.flush()
 
     session.add(PipelineRun(org_id=org.id, client_id=client.id, state="CONTENT_COMPLETE"))
+    from agency.db.models import ClientFact
+    session.add(ClientFact(
+        org_id=org.id,
+        client_id=client.id,
+        key="phone",
+        value="+49 911 123456",
+        value_type="text",
+        source_kind="client",
+        source_ref="intake:manual",
+        confidence=1.0,
+        status="proposed",
+    ))
     facts = Artifact(
         org_id=org.id,
         artifact_type="business_facts",
@@ -182,6 +194,20 @@ def test_dashboard_client_detail_is_tenant_scoped_and_traces_artifacts(tmp_path)
     assert response.status_code == 200
     body = response.json()
     assert body["client"]["state"] == "CONTENT_COMPLETE"
+    assert body["facts"] == [
+        {
+            "id": body["facts"][0]["id"],
+            "key": "phone",
+            "value": "+49 911 123456",
+            "value_type": "text",
+            "source_kind": "client",
+            "source_ref": "intake:manual",
+            "confidence": 1.0,
+            "status": "proposed",
+            "approved_by": None,
+            "created_at": body["facts"][0]["created_at"],
+        }
+    ]
     assert {item["type"] for item in body["artifacts"]} == {"business_facts", "content_model"}
     assert body["approvals"][0]["gate"] == "CONTENT"
     assert body["site_versions"][0]["build_hash"] == "a" * 64
