@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 const nav = [
   ["/", "Overview"], ["/clients", "Clients"], ["/pipeline", "Pipeline"],
   ["/artifacts", "Artifacts"], ["/deployments", "Deployments"], ["/leads", "Leads"],
+  ["/costs", "LLM costs"], ["/audit", "Audit log"],
 ] as const;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

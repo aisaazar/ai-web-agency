@@ -51,6 +51,30 @@ export interface DashboardDataAdapter {
   leads(): Promise<DashboardLead[]>;
 }
 
+export interface DashboardLLMCost {
+  orgId: string;
+  budgetMicros: number;
+  spentMicros: number;
+  clients: Array<{
+    clientId: string;
+    clientName: string;
+    budgetMicros: number;
+    spentMicros: number;
+  }>;
+}
+
+export interface DashboardAuditEvent {
+  id: string;
+  actor: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  ip?: string | null;
+  createdAt: string;
+}
+
 export interface DashboardClientFact {
   id: string;
   key: string;
@@ -281,6 +305,64 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
   };
 }
 
+
+export async function fetchLLMCost(): Promise<DashboardLLMCost> {
+  const sessionCookie = (await cookies()).get("agency_session")?.value;
+  if (!sessionCookie) redirect("/login");
+  if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
+  const response = await fetch(
+    `${API_BASE_URL}/v1/dashboard/llm-cost?org_id=${encodeURIComponent(ORG_ID)}`,
+    { cache: "no-store", headers: { Cookie: `agency_session=${sessionCookie}` } },
+  );
+  if (response.status === 401) redirect("/login");
+  if (!response.ok) throw new Error(`LLM cost request failed: ${response.status}`);
+  const data = await response.json() as {
+    org_id: string;
+    budget_micros: number;
+    spent_micros: number;
+    clients: Array<{ client_id: string; client_name: string; budget_micros: number; spent_micros: number }>;
+  };
+  return {
+    orgId: data.org_id,
+    budgetMicros: data.budget_micros,
+    spentMicros: data.spent_micros,
+    clients: data.clients.map((item) => ({
+      clientId: item.client_id,
+      clientName: item.client_name,
+      budgetMicros: item.budget_micros,
+      spentMicros: item.spent_micros,
+    })),
+  };
+}
+
+export async function fetchAuditLog(limit = 50): Promise<DashboardAuditEvent[]> {
+  const sessionCookie = (await cookies()).get("agency_session")?.value;
+  if (!sessionCookie) redirect("/login");
+  if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
+  const response = await fetch(
+    `${API_BASE_URL}/v1/audit?org_id=${encodeURIComponent(ORG_ID)}&limit=${encodeURIComponent(limit)}`,
+    { cache: "no-store", headers: { Cookie: `agency_session=${sessionCookie}` } },
+  );
+  if (response.status === 401) redirect("/login");
+  if (response.status === 403) return [];
+  if (!response.ok) throw new Error(`Audit request failed: ${response.status}`);
+  const data = await response.json() as Array<{
+    id: string; actor: string; action: string; entity_type: string; entity_id: string;
+    before?: Record<string, unknown> | null; after?: Record<string, unknown> | null;
+    ip?: string | null; created_at: string;
+  }>;
+  return data.map((item) => ({
+    id: item.id,
+    actor: item.actor,
+    action: item.action,
+    entityType: item.entity_type,
+    entityId: item.entity_id,
+    before: item.before,
+    after: item.after,
+    ip: item.ip,
+    createdAt: item.created_at,
+  }));
+}
 
 export async function fetchDashboard(): Promise<DashboardDataAdapter> {
   const sessionCookie = (await cookies()).get("agency_session")?.value;
