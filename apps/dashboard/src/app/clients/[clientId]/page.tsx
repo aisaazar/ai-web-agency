@@ -44,6 +44,10 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const design = findArtifact(detail, "design_plan");
   const build = findArtifact(detail, "site_build");
   const siteVersion = detail.siteVersions[0];
+  const latestPreview = detail.deployments.find((item) => item.environment === "preview");
+  const rollbackTargets = detail.siteVersions.filter(
+    (item) => item.buildHash !== detail.currentBuildHash,
+  );
 
   let action: React.ReactNode = null;
   switch (detail.state) {
@@ -65,7 +69,11 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;
       break;
     case "PREVIEW_READY":
-      if (build) action = <ActionForm action="approve-publish" clientId={clientId} hidden={{ artifact_id: build.id }}>Approve preview</ActionForm>;
+      if (build && siteVersion && !latestPreview) {
+        action = <ActionForm action="preview" clientId={clientId} hidden={{ site_version_id: siteVersion.id }}>Deploy preview</ActionForm>;
+      } else if (build) {
+        action = <ActionForm action="approve-publish" clientId={clientId} hidden={{ artifact_id: build.id }}>Approve preview</ActionForm>;
+      }
       break;
     case "PREVIEW_APPROVED":
       if (siteVersion) action = <ActionForm action="publish" clientId={clientId} hidden={{ site_version_id: siteVersion.id }}>Publish site</ActionForm>;
@@ -106,6 +114,21 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
         <div><div className="muted">Current build</div><div className="mono">{detail.currentBuildHash ?? "—"}</div></div>
         <div><div className="muted">Latest deployment</div><div>{detail.deployments[0]?.url || "—"}</div></div>
       </div>
+      {latestPreview ? <div className="previewRow"><div><div className="muted">Preview</div><a href={latestPreview.url} target="_blank" rel="noreferrer">{latestPreview.url}</a></div><span className="badge">{latestPreview.status}</span></div> : null}
     </section>
+
+    {detail.state === "LIVE" && rollbackTargets.length > 0 ? (
+      <section className="card section">
+        <div className="detailHeader"><div><h2 className="sectionTitle">Rollback</h2><div className="muted">Restore a previously approved build for this client.</div></div></div>
+        <div className="list">
+          {rollbackTargets.map((version) => (
+            <div className="row" key={version.id}>
+              <div><strong>{version.buildHash.slice(0, 12)}…</strong><div className="muted">{version.designPresetId} · {version.templateVersion}</div></div>
+              <ActionForm action="rollback" clientId={clientId} hidden={{ build_hash: version.buildHash }}>Rollback to this build</ActionForm>
+            </div>
+          ))}
+        </div>
+      </section>
+    ) : null}
   </>;
 }

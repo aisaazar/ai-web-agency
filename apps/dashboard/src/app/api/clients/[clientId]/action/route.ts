@@ -75,11 +75,26 @@ export async function POST(request: NextRequest, { params }: Params) {
         feedback: null,
       };
       break;
+    case "preview":
+      path = "/v1/deploys/preview";
+      payload = {
+        ...base,
+        site_version_id: String(form.get("site_version_id") ?? ""),
+        provider: "local_static",
+      };
+      break;
     case "publish":
       path = "/v1/deploys/publish";
       payload = {
         ...base,
         site_version_id: String(form.get("site_version_id") ?? ""),
+      };
+      break;
+    case "rollback":
+      path = "/v1/deploys/rollback";
+      payload = {
+        ...base,
+        build_hash: String(form.get("build_hash") ?? ""),
       };
       break;
     default:

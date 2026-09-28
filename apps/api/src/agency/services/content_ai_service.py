@@ -90,13 +90,18 @@ def generate_content_with_llm(
     if not facts:
         raise AIContentGenerationError("no approved facts available")
 
-    facts_artifact = session.scalar(select(Artifact).where(
+    facts_artifacts = list(session.scalars(select(Artifact).where(
         Artifact.org_id == org_id,
         Artifact.artifact_type == "business_facts",
         Artifact.is_active.is_(True),
-    ).order_by(Artifact.created_at.desc()))
+    ).order_by(Artifact.created_at.desc())))
+    facts_artifact = next(
+        (artifact for artifact in facts_artifacts
+         if artifact.payload_json.get("client_id") == str(client_id)),
+        None,
+    )
     if facts_artifact is None:
-        raise AIContentGenerationError("approved facts artifact not found")
+        raise AIContentGenerationError("approved facts artifact not found for client")
 
     run = session.scalar(select(ResearchRun).where(
         ResearchRun.org_id == org_id,

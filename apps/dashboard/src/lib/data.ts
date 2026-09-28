@@ -30,6 +30,7 @@ export interface DashboardDeployment {
   id: string;
   client: string;
   provider: string;
+  environment: "preview" | "production" | string;
   status: "live" | "preview" | "failed";
   url: string;
 }
@@ -188,6 +189,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
       id: string;
       client: string;
       provider: string;
+      environment: string;
       status: string;
       url?: string | null;
     }>;
@@ -230,6 +232,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
       id: item.id,
       client: item.client,
       provider: item.provider,
+      environment: item.environment,
       status: item.status === "live"
         ? "live"
         : item.status === "failed"
@@ -292,6 +295,7 @@ export async function fetchDashboard(): Promise<DashboardDataAdapter> {
         id: deployment.id,
         client: deployment.client,
         provider: deployment.provider,
+        environment: deployment.environment,
         status: deployment.status === "live"
           ? "live"
           : deployment.status === "failed"

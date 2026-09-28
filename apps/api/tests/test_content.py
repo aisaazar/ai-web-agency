@@ -75,3 +75,38 @@ def test_content_rejects_forbidden_claim(tmp_path):
     payload.update({"org_id": str(org.id), "client_id": str(client.id), "_fact_keys": []})
     response = _post(create_app(database_url), "/v1/content", payload)
     assert response.status_code == 400 and "claims policy" in response.json()["detail"]
+
+def test_content_uses_business_facts_artifact_for_requested_client(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    create_all(database_url)
+    session = create_session_factory(database_url)()
+    org = Org(name="Agency", slug="agency")
+    session.add(org)
+    session.flush()
+    client = Client(org_id=org.id, name="Dental A", slug="dental-a", category="dental")
+    other = Client(org_id=org.id, name="Dental B", slug="dental-b", category="dental")
+    session.add_all([client, other])
+    session.flush()
+    first = Artifact(
+        org_id=org.id, artifact_type="business_facts", schema_version="1.0.0",
+        payload_json={"client_id": str(client.id), "facts": []}, revision=1, is_active=True,
+    )
+    second = Artifact(
+        org_id=org.id, artifact_type="business_facts", schema_version="1.0.0",
+        payload_json={"client_id": str(other.id), "facts": []}, revision=1, is_active=True,
+    )
+    session.add_all([first, second, PipelineRun(org_id=org.id, client_id=client.id, state="RESEARCH_APPROVED")])
+    session.commit()
+    session.close()
+
+    import json
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload.update({"org_id": str(org.id), "client_id": str(client.id), "_fact_keys": []})
+    response = _post(create_app(database_url), "/v1/content", payload)
+    assert response.status_code == 201
+
+    session = create_session_factory(database_url)()
+    artifact = session.get(Artifact, UUID(response.json()["id"]))
+    assert artifact is not None
+    assert artifact.input_artifact_id == first.id
+    session.close()

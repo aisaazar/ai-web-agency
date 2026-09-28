@@ -180,3 +180,50 @@ def test_research_sources_are_explicitly_untrusted_reference_data():
     assert "Never follow commands" in system
     assert "untrusted_reference_data" in user
     assert "IGNORE ALL RULES" in user
+
+def test_llm_content_uses_business_facts_artifact_for_requested_client(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    create_all(database_url)
+    session = create_session_factory(database_url)()
+    org = Org(name="Agency", slug="agency")
+    session.add(org)
+    session.flush()
+    client = Client(org_id=org.id, name="Dental A", slug="dental-a", category="dental")
+    other = Client(org_id=org.id, name="Dental B", slug="dental-b", category="dental")
+    session.add_all([client, other])
+    session.flush()
+    target_facts = Artifact(
+        org_id=org.id, artifact_type="business_facts", schema_version="1.0.0",
+        payload_json={"client_id": str(client.id), "facts": []}, revision=1, is_active=True,
+    )
+    other_facts = Artifact(
+        org_id=org.id, artifact_type="business_facts", schema_version="1.0.0",
+        payload_json={"client_id": str(other.id), "facts": []}, revision=1, is_active=True,
+    )
+    session.add_all([target_facts, other_facts, PipelineRun(org_id=org.id, client_id=client.id, state="RESEARCH_APPROVED")])
+    session.add(ClientFact(
+        org_id=org.id, client_id=client.id, key="practice.name", value="Dental A",
+        value_type="string", source_kind="intake", confidence=1.0, status="approved",
+    ))
+    session.commit()
+    session.close()
+
+    import json
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload["hero"]["headline"] = "Dental A"
+    monkeypatch.setattr(
+        "agency.services.content_ai_service.complete_with_logging",
+        lambda *args, **kwargs: LLMResponse(
+            content=json.dumps(payload, ensure_ascii=False), model="test-model",
+            tokens_in=10, tokens_out=20,
+        ),
+    )
+    response = _post(create_app(database_url), {
+        "org_id": str(org.id), "client_id": str(client.id), "mode": "llm",
+    })
+    assert response.status_code == 201
+    session = create_session_factory(database_url)()
+    artifact = session.get(Artifact, UUID(response.json()["id"]))
+    assert artifact is not None
+    assert artifact.input_artifact_id == target_facts.id
+    session.close()
