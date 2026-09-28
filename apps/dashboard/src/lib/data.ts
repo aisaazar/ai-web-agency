@@ -39,7 +39,7 @@ export interface DashboardLead {
   client: string;
   name: string;
   email: string;
-  status: "new" | "contacted" | "qualified" | "won" | "lost";
+  status: "new" | "contacted" | "qualified" | "won" | "lost" | "spam";
   createdAt: string;
 }
 
