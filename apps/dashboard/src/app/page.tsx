@@ -19,7 +19,7 @@ export default async function OverviewPage() {
     </div>
     <div className="grid two section">
       <section className="card"><h2 className="sectionTitle">Pipeline attention</h2><div className="list">
-        {clients.map(c=><div className="row" key={c.id}><div><strong>{c.name}</strong><div className="muted">{c.category}</div></div><span className="badge">{c.state}</span></div>)}
+        {clients.map(c=><div className="row" key={c.id}><div><strong><Link href={`/clients/${c.id}`}>{c.name}</Link></strong><div className="muted">{c.category}</div></div><span className="badge">{c.state}</span></div>)}
       </div></section>
       <section className="card"><h2 className="sectionTitle">Recent leads</h2><div className="list">
         {leads.map(l=><div className="row" key={l.id}><div><strong>{l.name}</strong><div className="muted">{l.client}</div></div><span className="badge">{l.status}</span></div>)}
