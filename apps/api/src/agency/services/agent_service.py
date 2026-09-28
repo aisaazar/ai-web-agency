@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agency.db.conversation_models import Conversation, ConversationMessage
-from agency.db.models import Approval, Artifact, Client
+from agency.db.models import Approval, Artifact, Client, Site, SiteVersion
 
 CONSENT_NOTICE = (
     "Dieser Assistent beantwortet Fragen ausschließlich anhand freigegebener Website-Inhalte. "
@@ -49,8 +49,49 @@ def _tokens(text: str) -> set[str]:
     }
 
 
+def _bound_facts(session: Session, *, artifact: Artifact, org_id):
+    """The client's active business facts a content artifact derives from, if that binding is still valid.
+
+    docs/DOMAIN-MODEL.md: content copy may only derive from `client_facts` where `status = approved`.
+    """
+    if not artifact.input_artifact_id:
+        return None
+    facts = session.get(Artifact, artifact.input_artifact_id)
+    if facts is None or facts.org_id != org_id:
+        return None
+    if facts.artifact_type != "business_facts" or not facts.is_active:
+        return None
+    return facts
+
+
+def _shipped_by_another_client(
+    session: Session, *, content_artifact_id, org_id, client_id
+) -> bool:
+    """True when another client's site already shipped this exact content revision."""
+    return (
+        session.scalar(
+            select(SiteVersion.id)
+            .join(Site, Site.id == SiteVersion.site_id)
+            .where(
+                SiteVersion.org_id == org_id,
+                SiteVersion.content_artifact_id == content_artifact_id,
+                Site.org_id == org_id,
+                Site.client_id != client_id,
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
 def _approved_content(session: Session, *, client_id, org_id) -> dict:
-    artifact = session.scalar(
+    """Approved copy that belongs to exactly this client.
+
+    The newest org-wide approval is *not* the answer: candidates are scanned newest-first and only one
+    bound to this client's active business facts is served, so a second client in the same org can never
+    mask or inherit the assistant of another.
+    """
+    candidates = session.scalars(
         select(Artifact)
         .join(Approval, Approval.artifact_id == Artifact.id)
         .where(
@@ -62,15 +103,23 @@ def _approved_content(session: Session, *, client_id, org_id) -> dict:
             Approval.decision == "approved",
         )
         .order_by(Approval.created_at.desc(), Artifact.created_at.desc())
-    )
-    if artifact is None:
+    ).all()
+    if not candidates:
         raise AgentError("no approved content is available")
-    facts_artifact = session.get(Artifact, artifact.input_artifact_id) if artifact.input_artifact_id else None
-    if facts_artifact is None or facts_artifact.org_id != org_id:
-        raise AgentError("approved content is not bound to client facts")
-    if facts_artifact.payload_json.get("client_id") != str(client_id):
-        raise AgentError("approved content does not belong to client")
-    return artifact.payload_json
+
+    for artifact in candidates:
+        if _shipped_by_another_client(
+            session,
+            content_artifact_id=artifact.id,
+            org_id=org_id,
+            client_id=client_id,
+        ):
+            continue
+        facts = _bound_facts(session, artifact=artifact, org_id=org_id)
+        if facts is None or facts.payload_json.get("client_id") != str(client_id):
+            continue
+        return artifact.payload_json
+    raise AgentError("approved content is not bound to client facts")
 
 
 def _contact(content: dict) -> dict[str, str | None]:

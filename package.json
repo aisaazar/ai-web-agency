@@ -13,6 +13,7 @@
     "contracts:check": "node scripts/py.mjs scripts/export_contracts.py --check",
     "tokens": "node sites/_template-base/scripts/build-design-tokens.mjs",
     "tokens:check": "node sites/_template-base/scripts/build-design-tokens.mjs --check",
+    "audit:secrets": "node scripts/secrets-audit.mjs",
     "validate": "node sites/_template-base/scripts/gate/validate-content.mjs",
     "validate:production": "node sites/_template-base/scripts/gate/validate-content.mjs --production",
     "build:site": "npm run build --workspace @ai-web-agency/template-base",
@@ -26,7 +27,7 @@
     "test:dashboard": "npm run typecheck:dashboard && npm run build:dashboard",
     "db:backup": "node scripts/py.mjs scripts/sqlite_backup.py backup agency.db .artifacts/backups/agency.db",
     "db:restore": "node scripts/py.mjs scripts/sqlite_backup.py restore .artifacts/backups/agency.db agency-restored.db",
-    "test": "npm run test:python && npm run test:site && npm run test:dashboard",
+    "test": "npm run audit:secrets && npm run test:python && npm run test:site && npm run test:dashboard",
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
     "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard"

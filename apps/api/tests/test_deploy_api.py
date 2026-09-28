@@ -45,3 +45,34 @@ def test_rollback_endpoint_wires_service_result(tmp_path, monkeypatch):
     assert response.json()["site_version_id"] == str(expected_version)
     assert response.json()["build_hash"] == expected_build
     assert response.json()["state"] == "LIVE"
+
+
+def test_domain_endpoint_wires_service_result(tmp_path, monkeypatch):
+    import agency.api.deploy as deploy_api
+    monkeypatch.setattr(
+        deploy_api,
+        "attach_domain",
+        lambda session, **kwargs: SimpleNamespace(
+            provider="local_static", fqdn=kwargs["fqdn"], status="attached",
+        ),
+    )
+    app = create_app(f"sqlite:///{tmp_path / 'agency.db'}")
+    response = _post(app, "/v1/deploys/domain", {
+        "org_id": str(uuid4()), "client_id": str(uuid4()), "fqdn": "Clinic.Example.DE.",
+    })
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "local_static", "fqdn": "Clinic.Example.DE.", "status": "attached",
+    }
+
+
+def test_logs_endpoint_wires_service_result(tmp_path, monkeypatch):
+    import agency.api.deploy as deploy_api
+    expected_deploy = uuid4()
+    monkeypatch.setattr(deploy_api, "deployment_logs", lambda session, **kwargs: "readyState=READY")
+    app = create_app(f"sqlite:///{tmp_path / 'agency.db'}")
+    response = _post(app, "/v1/deploys/logs", {
+        "org_id": str(uuid4()), "client_id": str(uuid4()), "deploy_id": str(expected_deploy),
+    })
+    assert response.status_code == 200
+    assert response.json() == {"deploy_id": str(expected_deploy), "logs": "readyState=READY"}

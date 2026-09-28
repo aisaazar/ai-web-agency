@@ -1,8 +1,9 @@
 import pytest
+from sqlalchemy import select
 
 from agency.db import create_all, create_session_factory
 from agency.db.models import Approval, Artifact, BuildValidation, Client, Deploy, Org, Site, SiteVersion
-from agency.services.deploy_service import DeployError, rollback_site
+from agency.services.deploy_service import DeployError, attach_domain, deployment_logs, rollback_site
 
 
 CHECKS = (
@@ -24,6 +25,14 @@ class FakeDeploymentProvider:
             "provider": self.name, "deploy_ref": to_build_hash,
             "status": "live", "url": f"https://preview.example/{to_build_hash}",
         })()
+
+    def attach_domain(self, site_id, fqdn):
+        self.calls.append(("domain", site_id, fqdn))
+        return type("Result", (), {"provider": self.name, "fqdn": fqdn, "status": "attached"})()
+
+    def logs(self, deploy_ref):
+        self.calls.append(("logs", deploy_ref))
+        return f"logs:{deploy_ref}"
 
 
 def _seed(tmp_path):
@@ -86,4 +95,43 @@ def test_rollback_rejects_unknown_build_hash(tmp_path):
     session, org, client, _, _ = _seed(tmp_path)
     with pytest.raises(DeployError, match="not a site version"):
         rollback_site(session, org_id=org.id, client_id=client.id, build_hash="3" * 64)
+    session.close()
+
+def test_attach_domain_requires_live_site_and_normalizes_fqdn(tmp_path):
+    session, org, client, site, _ = _seed(tmp_path)
+    provider = FakeDeploymentProvider()
+    result = attach_domain(session, org_id=org.id, client_id=client.id,
+                           fqdn="Clinic.Example.DE.", provider=provider)
+    assert result.fqdn == "clinic.example.de"
+    assert provider.calls[-1] == ("domain", str(site.id), "clinic.example.de")
+    session.close()
+
+
+def test_attach_domain_rejects_path_or_scheme(tmp_path):
+    session, org, client, _, _ = _seed(tmp_path)
+    with pytest.raises(DeployError, match="valid DNS hostname"):
+        attach_domain(session, org_id=org.id, client_id=client.id,
+                      fqdn="https://clinic.example.de/path", provider=FakeDeploymentProvider())
+    session.close()
+
+
+def test_deployment_logs_are_scoped_to_client(tmp_path):
+    session, org, client, _, _ = _seed(tmp_path)
+    deploy = session.scalar(select(Deploy).where(Deploy.org_id == org.id))
+    provider = FakeDeploymentProvider()
+    result = deployment_logs(session, org_id=org.id, client_id=client.id,
+                              deploy_id=deploy.id, provider=provider)
+    assert result.startswith("logs:")
+    session.close()
+
+
+def test_deployment_logs_reject_cross_client(tmp_path):
+    session, org, client, _, _ = _seed(tmp_path)
+    other = Client(org_id=org.id, name="Other", slug="other", category="dental")
+    session.add(other)
+    session.flush()
+    deploy = session.scalar(select(Deploy).where(Deploy.org_id == org.id))
+    with pytest.raises(DeployError, match="does not belong to this client"):
+        deployment_logs(session, org_id=org.id, client_id=other.id,
+                        deploy_id=deploy.id, provider=FakeDeploymentProvider())
     session.close()

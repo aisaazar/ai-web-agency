@@ -1,6 +1,7 @@
 """Deployment use case with exact-build validation and provider isolation."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from agency.db.models import Approval, Artifact, BuildValidation, Deploy, Site, SiteVersion
 from agency.domain.pipeline_definition import is_valid_transition
-from agency.providers.deploy import BuildBundle, DeploymentProvider
+from agency.providers.deploy import BuildBundle, DeploymentProvider, DomainResult
 from agency.providers.deployment_registry import get_deployment_provider
 from agency.repositories import PipelineRepository
 from agency.services.audit_service import record_audit
@@ -38,6 +39,65 @@ BUILD_BUNDLES_ROOT = Path(__file__).resolve().parents[5] / ".artifacts" / "build
 
 def _default_provider() -> DeploymentProvider:
     return get_deployment_provider("local_static")
+
+
+def _as_deploy_error(label: str, call):
+    """Turn a provider/network/filesystem failure into an actionable DeployError.
+
+    Provider boundaries are the only place where an unexpected exception type is expected: a missing
+    credential, a rejected upload or a dead endpoint must reach the operator as a diagnosis, not as an
+    opaque HTTP 500.
+    """
+    try:
+        return call()
+    except DeployError:
+        raise
+    except Exception as exc:
+        raise DeployError(f"{label} failed: {exc}") from exc
+
+
+_FQDN_PATTERN = re.compile(r"(?=.{1,253}\Z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\Z")
+
+
+def _normalize_fqdn(value: str) -> str:
+    """One canonical spelling of the client's domain, rejected before any provider call."""
+    fqdn = (value or "").strip().lower().rstrip(".")
+    if "://" in fqdn or "/" in fqdn or "@" in fqdn or _FQDN_PATTERN.fullmatch(fqdn) is None:
+        raise DeployError("fqdn must be a valid DNS hostname without scheme or path")
+    return fqdn
+
+
+def _published_build_artifact(session: Session, *, org_id, version: SiteVersion) -> Artifact:
+    """The exact immutable build artifact of a site version, plus its binding publish approval."""
+    artifact = session.scalar(select(Artifact).where(
+        Artifact.org_id == org_id,
+        Artifact.artifact_type == "site_build",
+        Artifact.build_hash == version.build_hash,
+        Artifact.input_artifact_id == version.content_artifact_id,
+        Artifact.is_active.is_(True),
+    ))
+    if artifact is None:
+        raise DeployError("site build artifact not found for exact build_hash")
+    approved = session.scalar(select(Approval).where(
+        Approval.org_id == org_id,
+        Approval.artifact_id == artifact.id,
+        Approval.gate == "PUBLISH",
+        Approval.decision == "approved",
+    ))
+    if approved is None:
+        raise DeployError("publish approval not found for exact build artifact")
+    return artifact
+
+
+def _live_deploy(session: Session, *, org_id, site_id) -> Deploy | None:
+    return session.scalar(select(Deploy).where(
+        Deploy.org_id == org_id,
+        Deploy.site_version_id.in_(
+            select(SiteVersion.id).where(SiteVersion.site_id == site_id)
+        ),
+        Deploy.environment == "production",
+        Deploy.status == "live",
+    ).order_by(Deploy.created_at.desc()))
 
 
 def _bundle_for_version(version: SiteVersion) -> BuildBundle:
@@ -119,7 +179,9 @@ def create_preview(
         return existing
 
     deployer = provider or _default_provider()
-    preview = deployer.create_preview(_bundle_for_version(version))
+    preview = _as_deploy_error(
+        "preview deployment", lambda: deployer.create_preview(_bundle_for_version(version))
+    )
     record = Deploy(
         org_id=org_id,
         site_version_id=version.id,
@@ -173,24 +235,7 @@ def publish_site(
         build_hash=version.build_hash,
     )
 
-    build_artifact = session.scalar(select(Artifact).where(
-        Artifact.org_id == org_id,
-        Artifact.artifact_type == "site_build",
-        Artifact.build_hash == version.build_hash,
-        Artifact.input_artifact_id == version.content_artifact_id,
-        Artifact.is_active.is_(True),
-    ))
-    if build_artifact is None:
-        raise DeployError("site build artifact not found for exact build_hash")
-
-    publish_approval = session.scalar(select(Approval).where(
-        Approval.org_id == org_id,
-        Approval.artifact_id == build_artifact.id,
-        Approval.gate == "PUBLISH",
-        Approval.decision == "approved",
-    ))
-    if publish_approval is None:
-        raise DeployError("publish approval not found for exact build artifact")
+    build_artifact = _published_build_artifact(session, org_id=org_id, version=version)
 
     preview_deploy = session.scalar(select(Deploy).where(
         Deploy.org_id == org_id,
@@ -209,7 +254,7 @@ def publish_site(
         if deployer.name == "vercel" and preview_deploy.url
         else version.build_hash
     )
-    promoted = deployer.promote(promote_ref)
+    promoted = _as_deploy_error("publish", lambda: deployer.promote(promote_ref))
 
     record = Deploy(
         org_id=org_id,
@@ -241,6 +286,66 @@ def publish_site(
     return record
 
 
+def attach_domain(
+    session: Session,
+    *,
+    org_id,
+    client_id,
+    fqdn: str,
+    provider: DeploymentProvider | None = None,
+) -> DomainResult:
+    site = session.scalar(select(Site).where(
+        Site.org_id == org_id,
+        Site.client_id == client_id,
+    ))
+    if site is None:
+        raise DeployError("site not found")
+    live = _live_deploy(session, org_id=org_id, site_id=site.id)
+    if live is None:
+        raise DeployError("site must have a live deployment before attaching a domain")
+    deployer = provider or get_deployment_provider(live.provider)
+    if deployer.name != live.provider:
+        raise DeployError("deployment provider does not match live deployment")
+    normalized = _normalize_fqdn(fqdn)
+    return _as_deploy_error(
+        "domain attachment", lambda: deployer.attach_domain(str(site.id), normalized)
+    )
+
+
+def deployment_logs(
+    session: Session,
+    *,
+    org_id,
+    client_id,
+    deploy_id,
+    provider: DeploymentProvider | None = None,
+) -> str:
+    deploy = session.scalar(select(Deploy).where(
+        Deploy.id == deploy_id,
+        Deploy.org_id == org_id,
+    ))
+    if deploy is None:
+        raise DeployError("deployment not found")
+    site = session.scalar(select(Site).join(
+        SiteVersion, SiteVersion.site_id == Site.id
+    ).where(
+        SiteVersion.id == deploy.site_version_id,
+        Site.org_id == org_id,
+        Site.client_id == client_id,
+    ))
+    if site is None:
+        raise DeployError("deployment does not belong to this client")
+    deployer = provider or get_deployment_provider(deploy.provider)
+    if deployer.name != deploy.provider:
+        raise DeployError("deployment provider does not match stored deployment")
+    deploy_ref = deploy.url or ""
+    if deploy.provider == "local_static":
+        deploy_ref = Path(deploy.url.removeprefix("file:///")).parent.name if deploy.url else ""
+    if not deploy_ref:
+        raise DeployError("deployment has no provider reference")
+    return _as_deploy_error("deployment logs", lambda: deployer.logs(deploy_ref))
+
+
 def rollback_site(
     session: Session,
     *,
@@ -256,14 +361,7 @@ def rollback_site(
     if current_site is None:
         raise DeployError("site not found")
 
-    live_deploy = session.scalar(select(Deploy).where(
-        Deploy.org_id == org_id,
-        Deploy.site_version_id.in_(
-            select(SiteVersion.id).where(SiteVersion.site_id == current_site.id)
-        ),
-        Deploy.environment == "production",
-        Deploy.status == "live",
-    ).order_by(Deploy.created_at.desc()))
+    live_deploy = _live_deploy(session, org_id=org_id, site_id=current_site.id)
     if live_deploy is None:
         raise DeployError("site has no live deployment to roll back")
 
@@ -315,7 +413,9 @@ def rollback_site(
         if target_deploy is None:
             raise DeployError("target Vercel deployment reference not found")
         rollback_ref = target_version.build_hash
-    promoted = deployer.rollback(str(current_site.id), rollback_ref)
+    promoted = _as_deploy_error(
+        "rollback", lambda: deployer.rollback(str(current_site.id), rollback_ref)
+    )
     record = Deploy(
         org_id=org_id,
         site_version_id=target_version.id,

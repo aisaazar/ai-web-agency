@@ -43,6 +43,9 @@ silently blocks a move to Postgres. Rules from day one:
 - A deployment is impossible without a passing `build_validation` set for that exact `build_hash`.
 - Content copy may only derive from `client_facts` where `status = approved`.
 - No query returns rows belonging to another `org_id` (cross-tenant test suite proves it).
+- A customer-assistant answer is served only from approved content bound to the asking client's own active
+  facts: the newest approval in the org is never assumed to be the right one, and copy another client's site
+  shipped is refused (`test_prompt_injection.py`).
 - No published page exists without the jurisdiction-required legal pages.
 - Every `LLMInvocation` is attributed to an `org_id` and a `client_id`.
 

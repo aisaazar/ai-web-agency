@@ -47,6 +47,7 @@ npm test                   # python tests + the whole site chain
 npm run test:python        # pytest apps/api/tests
 npm run validate           # content gate: schema, claims, urls, language, legal pages (dev mode)
 npm run validate:production# the same gate with fixture content made fatal (what CI runs per client)
+npm run audit:secrets      # tracked files: credential shapes, real .env, secret-looking NEXT_PUBLIC_* names
 npm run build:site         # tokens -> content gate -> next build -> sites/_template-base/out
 npm run validate:output    # prove the exported artefacts and self-hosted fonts exist
 npm run qa:smoke           # serve out/, crawl every route, axe scan for serious/critical issues

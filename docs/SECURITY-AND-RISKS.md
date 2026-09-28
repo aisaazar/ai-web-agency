@@ -4,9 +4,10 @@
 
 - [x] LLM output is plain-text content only; no HTML/markdown rendering surface and no `dangerouslySetInnerHTML`
 - [x] Fetched/scraped content is untrusted input data only: it is validated/bounded, never drives tool calls, deploy actions, file paths or SQL
+- [x] Prompt-injection regression tests: untrusted research text cannot widen the fact set, replace the operator instruction or bypass the claims validator, and copy hidden inside approved content cannot turn the customer agent into an advice-giver (`apps/api/tests/test_prompt_injection.py`)
 - [x] Fetch provider: scheme allowlist, block private/loopback/link-local IPs, cap redirects + body size, timeout
 - [ ] One scoped repository layer; cross-tenant test suite; every query carries `org_id`
-- [ ] Per-site deploy token scoped to one project; no org-wide token inside a client build; no secrets in build output
+- [x] Per-site deploy token scoped to one project; no org-wide token inside a client build; no secrets in build output — the static build runs with secret-like env names removed (`_build_environment`) and `npm run audit:secrets` fails on credential shapes, tracked `.env` files and secret-looking `NEXT_PUBLIC_*` names
 - [x] Studio auth: argon2/bcrypt hashes, 2FA-ready, secure + httpOnly cookies, CSRF, rate limits, session rotation
 - [x] LLM budget caps per org **and** per client; bounded retries; hard fail when budget is exceeded
 - [x] Generated sites: strict CSP, no third-party trackers by default, **no Google Fonts CDN** (German court rulings); enforced by build output generation + validation
