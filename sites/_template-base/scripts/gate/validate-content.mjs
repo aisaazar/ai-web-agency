@@ -252,6 +252,7 @@ if (production) {
   const leadApi = process.env.NEXT_PUBLIC_AGENCY_LEAD_API_URL?.trim() ?? "";
   const siteId = process.env.NEXT_PUBLIC_AGENCY_SITE_ID?.trim() ?? "";
   const agentApi = process.env.NEXT_PUBLIC_AGENCY_AGENT_API_URL?.trim() ?? "";
+  const agentClientId = process.env.NEXT_PUBLIC_AGENCY_CLIENT_ID?.trim() ?? "";
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
   const publicApiUrls = [
     ["NEXT_PUBLIC_AGENCY_LEAD_API_URL", leadApi, true],
@@ -273,10 +274,10 @@ if (production) {
   }
   report.check(
     "production_config",
-    Boolean(siteId) && Boolean(turnstileSiteKey) && urlProblems.length === 0,
-    Boolean(siteId) && Boolean(turnstileSiteKey) && urlProblems.length === 0
-      ? "lead API, site ID, Turnstile site key, and optional agent API are production-safe"
-      : [siteId ? "" : "NEXT_PUBLIC_AGENCY_SITE_ID is required", turnstileSiteKey ? "" : "NEXT_PUBLIC_TURNSTILE_SITE_KEY is required", ...urlProblems].filter(Boolean).join("; "),
+    Boolean(siteId) && Boolean(turnstileSiteKey) && (!agentApi || Boolean(agentClientId)) && urlProblems.length === 0,
+    Boolean(siteId) && Boolean(turnstileSiteKey) && (!agentApi || Boolean(agentClientId)) && urlProblems.length === 0
+      ? "lead API, site ID, Turnstile site key, and optional agent API/client ID are production-safe"
+      : [siteId ? "" : "NEXT_PUBLIC_AGENCY_SITE_ID is required", turnstileSiteKey ? "" : "NEXT_PUBLIC_TURNSTILE_SITE_KEY is required", agentApi && !agentClientId ? "NEXT_PUBLIC_AGENCY_CLIENT_ID is required when agent API is configured" : "", ...urlProblems].filter(Boolean).join("; "),
   );
 }
 

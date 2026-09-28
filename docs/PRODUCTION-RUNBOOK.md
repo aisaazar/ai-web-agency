@@ -9,6 +9,7 @@ Set these values only in the deployment secret store:
 - NEXT_PUBLIC_TURNSTILE_SITE_KEY=<public site key>
 - NEXT_PUBLIC_AGENCY_LEAD_API_URL=https://<api-origin>
 - NEXT_PUBLIC_AGENCY_AGENT_API_URL=https://<api-origin> when the customer agent is enabled
+- NEXT_PUBLIC_AGENCY_CLIENT_ID=<client id> when `NEXT_PUBLIC_AGENCY_AGENT_API_URL` is configured
 - NEXT_PUBLIC_AGENCY_SITE_ID=<site id>
 
 Never commit secrets or copy secret values into content artifacts.
