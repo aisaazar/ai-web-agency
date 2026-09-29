@@ -184,6 +184,7 @@ def create_preview(
         raise DeployError("site build artifact not found for exact build_hash")
     _assert_exact_build_artifact(artifact=build_artifact, client_id=client_id, version=version)
 
+    deployer = provider or _default_provider()
     existing = session.scalar(select(Deploy).where(
         Deploy.org_id == org_id,
         Deploy.site_version_id == version.id,
@@ -191,9 +192,12 @@ def create_preview(
         Deploy.status == "preview_ready",
     ))
     if existing is not None:
+        if existing.provider != deployer.name:
+            raise DeployError(
+                f"existing preview provider {existing.provider!r} does not match requested provider {deployer.name!r}"
+            )
         return existing
 
-    deployer = provider or _default_provider()
     preview = _as_deploy_error(
         "preview deployment", lambda: deployer.create_preview(_bundle_for_version(version))
     )

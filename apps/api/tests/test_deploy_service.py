@@ -3,7 +3,8 @@ from sqlalchemy import select
 
 from agency.db import create_all, create_session_factory
 from agency.db.models import Approval, Artifact, BuildValidation, Client, Deploy, Org, Site, SiteVersion
-from agency.services.deploy_service import DeployError, attach_domain, deployment_logs, rollback_site
+from agency.db.workflow_models import PipelineRun
+from agency.services.deploy_service import DeployError, attach_domain, create_preview, deployment_logs, rollback_site
 
 
 CHECKS = (
@@ -147,6 +148,43 @@ def test_rollback_rejects_inconsistent_artifact_client_binding(tmp_path):
 
     assert provider.calls == []
     session.close()
+
+def test_create_preview_rejects_existing_preview_from_different_provider(tmp_path):
+    session, org, client, site, target = _seed(tmp_path)
+    session.add(PipelineRun(org_id=org.id, client_id=client.id, state="PREVIEW_READY"))
+    session.add(Deploy(
+        org_id=org.id,
+        site_version_id=target.id,
+        environment="preview",
+        provider="local_static",
+        status="preview_ready",
+        url="file:///preview/target",
+    ))
+    session.commit()
+
+    class AlternateProvider:
+        name = "vercel"
+
+        def __init__(self):
+            self.calls = 0
+
+        def create_preview(self, bundle):
+            self.calls += 1
+            raise AssertionError("provider must not be called when preview provider mismatches")
+
+    provider = AlternateProvider()
+    with pytest.raises(DeployError, match="does not match requested provider"):
+        create_preview(
+            session,
+            org_id=org.id,
+            client_id=client.id,
+            site_version_id=target.id,
+            provider=provider,
+        )
+
+    assert provider.calls == 0
+    session.close()
+
 
 def test_attach_domain_requires_live_site_and_normalizes_fqdn(tmp_path):
     session, org, client, site, _ = _seed(tmp_path)
