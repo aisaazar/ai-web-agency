@@ -18,6 +18,10 @@ import { TEMPLATE_ROOT, createReport, designPresetLabel, readDesignPreset } from
 const OUTPUT_PATH = path.join(TEMPLATE_ROOT, "src", "styles", "design-tokens.generated.css");
 const HEX_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
+// Line endings are not content (`.gitattributes` pins LF in every clone). Comparing raw bytes made
+// a CRLF checkout look like a stale preset, so normalize before the equality check.
+const normalizeEol = (text) => text.replace(/\r\n/g, "\n");
+
 const channelToLinear = (value) => {
   const channel = value / 255;
   return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
@@ -102,7 +106,7 @@ for (const pair of preset.tokens?.contrastPairs ?? []) {
 
 const css = render(preset);
 const current = existsSync(OUTPUT_PATH) ? readFileSync(OUTPUT_PATH, "utf8") : null;
-if (current === css) {
+if (current !== null && normalizeEol(current) === normalizeEol(css)) {
   report.check("generated CSS up to date", true, "src/styles/design-tokens.generated.css");
 } else if (checkOnly) {
   report.check("generated CSS up to date", false, "STALE - run `npm run tokens`");

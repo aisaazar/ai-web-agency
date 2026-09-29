@@ -1,0 +1,29 @@
+# Line endings are LF everywhere.
+#
+# `.editorconfig` already declares `end_of_line = lf`, but that is only a convention an editor
+# may honour. Several build gates are byte-exact: they regenerate an artefact and compare it to
+# the committed copy (`npm run tokens:check`, `npm run contracts:check`). On a Windows checkout
+# with `core.autocrlf=true` and no attributes file, git hands those gates a CRLF copy of an LF
+# blob, so the gate fails with "STALE" even though nothing drifted. Declaring the rule here makes
+# every clone produce the same bytes the generator produced.
+* text=auto eol=lf
+
+# Windows-only entry points keep CRLF if they are ever added.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets must never be text-converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.svg text eol=lf
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary

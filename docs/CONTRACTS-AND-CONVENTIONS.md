@@ -109,3 +109,10 @@ ai-web-agency/
 Two rules that keep this structure honest: `packages/contracts` is **generated** (Pydantic ->
 `model_json_schema()` -> `json-schema-to-typescript`), and `services/` never imports a provider directly —
 only through `get_provider()`.
+
+A third rule protects the first two: every tracked text file is LF, pinned by `.gitattributes`. The
+generated-artefact gates are byte-exact (`npm run contracts:check`, `npm run tokens:check`), so a CRLF
+checkout reports drift that does not exist; on a Windows machine with `core.autocrlf=true` that turned a
+clean repository into a red gate. Never "fix" that red gate by regenerating the artefact — fix the
+checkout. A clone created before `.gitattributes` existed keeps its CRLF working copies until they are
+re-checked out (`git rm -r --cached . && git reset --hard` on a clean tree).
