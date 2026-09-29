@@ -166,6 +166,8 @@ def create_preview(
     pipeline = PipelineRepository(session, org_id).latest_for_client(client_id)
     if site is None or pipeline is None or pipeline.state != "PREVIEW_READY":
         raise DeployError("site is not ready for preview deployment")
+    if site.current_build_hash != version.build_hash:
+        raise DeployError("site version is not the current build for this client")
 
     _assert_validations(
         session,
@@ -246,6 +248,8 @@ def publish_site(
     pipeline = PipelineRepository(session, org_id).latest_for_client(client_id)
     if site is None or pipeline is None or pipeline.state != "PREVIEW_APPROVED":
         raise DeployError("site is not ready to publish")
+    if site.current_build_hash != version.build_hash:
+        raise DeployError("site version is not the current build for this client")
 
     _assert_validations(
         session,

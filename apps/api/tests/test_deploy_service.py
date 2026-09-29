@@ -69,6 +69,7 @@ def _seed(tmp_path):
                          approved_by="owner@example.com"))
     session.add_all([BuildValidation(org_id=org.id, site_version_id=target.id, check_name=name, passed=True, detail_json={})
                      for name in CHECKS])
+    site.current_build_hash = target.build_hash
     session.add(Deploy(org_id=org.id, site_version_id=current.id, environment="production",
                        provider="fake", status="live", url="https://live.example"))
     session.commit()
@@ -148,6 +149,25 @@ def test_rollback_rejects_inconsistent_artifact_client_binding(tmp_path):
 
     assert provider.calls == []
     session.close()
+
+def test_create_preview_rejects_stale_site_version(tmp_path):
+    session, org, client, site, target = _seed(tmp_path)
+    session.add(PipelineRun(org_id=org.id, client_id=client.id, state="PREVIEW_READY"))
+    session.commit()
+    site.current_build_hash = "1" * 64
+    session.commit()
+
+    with pytest.raises(DeployError, match="not the current build"):
+        create_preview(
+            session,
+            org_id=org.id,
+            client_id=client.id,
+            site_version_id=target.id,
+            provider=FakeDeploymentProvider(),
+        )
+
+    session.close()
+
 
 def test_create_preview_rejects_existing_preview_from_different_provider(tmp_path):
     session, org, client, site, target = _seed(tmp_path)
