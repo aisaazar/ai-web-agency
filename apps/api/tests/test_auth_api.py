@@ -66,6 +66,7 @@ def test_bootstrap_login_me_logout_and_owner_audit(tmp_path):
     assert me.json()["user"]["email"] == "owner@example.com"
     assert audit.status_code == 200
     assert audit.json()[0]["action"] == "auth.bootstrap"
+    assert audit.json()[0]["ip"] == "127.0.0.1"
     assert member.status_code == 201
     assert member.json()["role"] == "reviewer"
     assert reviewer_login.status_code == 200

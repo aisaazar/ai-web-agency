@@ -107,7 +107,12 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         )
 
     @router.post("/bootstrap", response_model=AuthResponse, status_code=201)
-    def bootstrap(payload: BootstrapRequest, response: Response, session: Session = Depends(db)):
+    def bootstrap(
+        payload: BootstrapRequest,
+        request: Request,
+        response: Response,
+        session: Session = Depends(db),
+    ):
         if session.scalar(select(func.count(User.id))) != 0:
             raise HTTPException(status_code=409, detail="bootstrap already completed")
         email = payload.email.lower().strip()
@@ -129,7 +134,7 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             entity_type="org",
             entity_id=str(org.id),
             after={"email": user.email, "role": "owner"},
-            ip=response.headers.get("x-forwarded-for"),
+            ip=request.client.host if request.client else None,
         )
         set_cookie(response, create_session(session, user))
         return response_for(session, user)
