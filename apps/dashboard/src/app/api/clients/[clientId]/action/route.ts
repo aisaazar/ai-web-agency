@@ -133,8 +133,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.redirect(target, 303);
   }
 
-  if (upstream.status === 401 || upstream.status === 403) {
+  if (upstream.status === 401) {
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+
+  if (upstream.status === 403) {
+    const target = new URL(`/clients/${clientId}`, request.url);
+    target.searchParams.set("error", "You do not have permission to perform this action");
+    return NextResponse.redirect(target, 303);
   }
 
   if (!upstream.ok) {
