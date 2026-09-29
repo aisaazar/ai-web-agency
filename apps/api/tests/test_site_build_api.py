@@ -348,4 +348,34 @@ def test_site_build_failure_persists_diagnostics(tmp_path, monkeypatch):
     assert pipeline.state == "BUILD_FAILED"
     assert len(validations) == 11
     assert any(not item.passed for item in validations)
+    failed_version_count = session.query(SiteVersion).filter(
+        SiteVersion.org_id == org.id
+    ).count()
+    assert failed_version_count == 1
+    session.close()
+
+    monkeypatch.setattr(
+        build_module,
+        "_run",
+        lambda command, *, cwd, env: (True, f"mocked: {' '.join(command)}"),
+    )
+    retry = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert retry.status_code == 201
+    assert retry.json()["state"] == "PREVIEW_READY"
+
+    session = create_session_factory(database_url)()
+    versions = session.query(SiteVersion).filter(
+        SiteVersion.org_id == org.id
+    ).all()
+    assert len(versions) == 1
+    assert versions[0].build_hash == retry.json()["build_hash"]
+    assert session.query(BuildValidation).filter(
+        BuildValidation.site_version_id == versions[0].id
+    ).count() == 11
     session.close()

@@ -16,6 +16,7 @@ from agency.db.models import Artifact, BuildValidation, Site, SiteVersion
 from agency.domain.claims_policy import assert_claims_allowed
 from agency.domain.content_model import ContentModel
 from agency.repositories import PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.build_gate import (
     REQUIRED_CHECKS,
     ValidationResult,
@@ -26,6 +27,9 @@ from agency.services.pipeline_service import transition
 
 class SiteBuildError(RuntimeError):
     pass
+
+
+BUILDABLE_STATES = frozenset({"DESIGN_APPROVED", "BUILD_FAILED"})
 
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -104,6 +108,31 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, s
     return result.returncode == 0, detail[-2000:]
 
 
+def _fail_build(
+    session: Session,
+    *,
+    org_id,
+    client_id,
+    pipeline,
+    site_version: SiteVersion,
+    reason: str,
+) -> None:
+    pipeline.state = transition(pipeline.state, "BUILD_FAILED").to_state
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action="build.failed",
+        entity_type="site_version",
+        entity_id=str(site_version.id),
+        after={
+            "client_id": str(client_id),
+            "build_hash": site_version.build_hash,
+            "reason": reason[:2000],
+        },
+    )
+
+
 def build_site(session: Session, *, org_id, client_id, content_artifact_id, design_artifact_id) -> SiteVersion:
     pipeline = PipelineRepository(session, org_id).latest_for_client(client_id)
     content = session.scalar(select(Artifact).where(
@@ -118,7 +147,7 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         Artifact.artifact_type == "design_plan",
         Artifact.is_active.is_(True),
     ))
-    if pipeline is None or pipeline.state != "DESIGN_APPROVED" or content is None or design is None:
+    if pipeline is None or pipeline.state not in BUILDABLE_STATES or content is None or design is None:
         raise SiteBuildError("site is not ready for build")
 
     pipeline.state = transition(pipeline.state, "BUILDING").to_state
@@ -134,17 +163,28 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         session.flush()
 
     build_hash = _build_hash(content, design)
-    version = SiteVersion(
-        org_id=org_id,
-        site_id=site.id,
-        build_hash=build_hash,
-        content_artifact_id=content.id,
-        content_schema_version=content.schema_version,
-        template_version=str(design.payload_json["template_version"]),
-        design_preset_id=str(design.payload_json["design_preset_id"]),
-    )
-    session.add(version)
-    session.flush()
+    version = session.scalar(select(SiteVersion).where(
+        SiteVersion.org_id == org_id,
+        SiteVersion.site_id == site.id,
+        SiteVersion.build_hash == build_hash,
+    ))
+    if version is None:
+        version = SiteVersion(
+            org_id=org_id,
+            site_id=site.id,
+            build_hash=build_hash,
+            content_artifact_id=content.id,
+            content_schema_version=content.schema_version,
+            template_version=str(design.payload_json["template_version"]),
+            design_preset_id=str(design.payload_json["design_preset_id"]),
+        )
+        session.add(version)
+        session.flush()
+    else:
+        session.query(BuildValidation).filter(
+            BuildValidation.org_id == org_id,
+            BuildValidation.site_version_id == version.id,
+        ).delete(synchronize_session=False)
 
     content_file = TEMPLATE_ROOT / f"content.generated.{client_id}.json"
     content_file.write_text(
@@ -229,13 +269,27 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     try:
         evaluate_build_gate(checks)
     except Exception as exc:
-        pipeline.state = transition("BUILDING", "BUILD_FAILED").to_state
+        _fail_build(
+            session,
+            org_id=org_id,
+            client_id=client_id,
+            pipeline=pipeline,
+            site_version=version,
+            reason=str(exc),
+        )
         raise SiteBuildError(str(exc)) from exc
 
     try:
         _persist_build_bundle(build_hash)
     except Exception as exc:
-        pipeline.state = transition("BUILDING", "BUILD_FAILED").to_state
+        _fail_build(
+            session,
+            org_id=org_id,
+            client_id=client_id,
+            pipeline=pipeline,
+            site_version=version,
+            reason=str(exc),
+        )
         raise SiteBuildError(str(exc)) from exc
 
     build_artifact = Artifact(

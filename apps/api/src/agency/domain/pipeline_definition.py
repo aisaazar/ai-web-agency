@@ -30,6 +30,7 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     "DESIGN_COMPLETE": frozenset({"DESIGN_APPROVED"}),
     "DESIGN_APPROVED": frozenset({"BUILDING"}),
     "BUILDING": frozenset({"BUILD_COMPLETE", "BUILD_FAILED"}),
+    "BUILD_FAILED": frozenset({"BUILDING"}),
     "BUILD_COMPLETE": frozenset({"PREVIEW_READY", "FAILED"}),
     "PREVIEW_READY": frozenset({"PREVIEW_APPROVED", "CONTENT_GENERATING", "DESIGNING"}),
     "PREVIEW_APPROVED": frozenset({"PUBLISHING"}),
