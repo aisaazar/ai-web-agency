@@ -10,7 +10,7 @@
     "contracts": "npm run contracts:export && npm run contracts:types",
     "contracts:export": "node scripts/py.mjs scripts/export_contracts.py",
     "contracts:types": "node scripts/emit-contract-types.mjs",
-    "contracts:check": "node scripts/py.mjs scripts/export_contracts.py --check",
+    "contracts:check": "node scripts/py.mjs scripts/export_contracts.py --check && node scripts/emit-contract-types.mjs --check",
     "tokens": "node sites/_template-base/scripts/build-design-tokens.mjs",
     "tokens:check": "node sites/_template-base/scripts/build-design-tokens.mjs --check",
     "audit:secrets": "node scripts/secrets-audit.mjs",
