@@ -2,7 +2,13 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default function NewClientPage() {
+type Props = {
+  searchParams: Promise<{ error?: string }>;
+};
+
+export default async function NewClientPage({ searchParams }: Props) {
+  const query = await searchParams;
+
   return (
     <>
       <div className="topbar">
@@ -12,6 +18,7 @@ export default function NewClientPage() {
         </div>
         <Link className="button secondaryButton" href="/clients">Back</Link>
       </div>
+      {query.error ? <p className="error">{query.error}</p> : null}
       <section className="card">
         <p className="muted">Start the approved intake workflow. Add the initial business facts now so the client can move into Facts approval immediately.</p>
         <form action="/api/intake" method="post" className="intakeForm">

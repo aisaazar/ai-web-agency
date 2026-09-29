@@ -50,19 +50,31 @@ export async function POST(request: NextRequest) {
     facts: validFacts,
   };
 
-  const upstream = await fetch(`${API_BASE_URL}/v1/intake`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: `agency_session=${session}; agency_csrf=${csrf}`,
-      "X-CSRF-Token": csrf,
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${API_BASE_URL}/v1/intake`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `agency_session=${session}; agency_csrf=${csrf}`,
+        "X-CSRF-Token": csrf,
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+  } catch {
+    const target = new URL("/clients/new", request.url);
+    target.searchParams.set("error", "Agency API is currently unavailable");
+    return NextResponse.redirect(target, 303);
+  }
 
-  if (upstream.status === 401 || upstream.status === 403) {
+  if (upstream.status === 401) {
     return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+  if (upstream.status === 403) {
+    const target = new URL("/clients/new", request.url);
+    target.searchParams.set("error", "You do not have permission to create clients");
+    return NextResponse.redirect(target, 303);
   }
   if (!upstream.ok) {
     const body = await upstream.text();
