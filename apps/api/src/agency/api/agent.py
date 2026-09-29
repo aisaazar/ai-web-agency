@@ -19,6 +19,7 @@ from agency.db.conversation_models import Conversation, ConversationMessage
 from agency.services.agent_service import AgentError, CONSENT_NOTICE, reply_to_conversation, start_conversation
 
 VISITOR_COOKIE = "agency_agent_visitor"
+VISITOR_HEADER = "X-Agent-Visitor-Token"
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
@@ -57,7 +58,11 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         except AgentError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         set_visitor_cookie(response, conversation.visitor_ref)
-        return ConversationCreateOut(conversation_id=conversation.id, consent_notice=notice)
+        return ConversationCreateOut(
+            conversation_id=conversation.id,
+            visitor_token=conversation.visitor_ref,
+            consent_notice=notice,
+        )
 
     @router.post("/conversations/{conversation_id}/messages", response_model=AgentMessageOut)
     def message(
@@ -66,7 +71,7 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         request: Request,
         session: Session = Depends(db),
     ):
-        visitor_ref = request.cookies.get(VISITOR_COOKIE)
+        visitor_ref = request.headers.get(VISITOR_HEADER) or request.cookies.get(VISITOR_COOKIE)
         if not visitor_ref:
             raise HTTPException(status_code=401, detail="agent visitor session required")
         try:
@@ -93,7 +98,7 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         request: Request,
         session: Session = Depends(db),
     ):
-        visitor_ref = request.cookies.get(VISITOR_COOKIE)
+        visitor_ref = request.headers.get(VISITOR_HEADER) or request.cookies.get(VISITOR_COOKIE)
         conversation = session.get(Conversation, conversation_id)
         if conversation is None or conversation.visitor_ref != visitor_ref:
             raise HTTPException(status_code=404, detail="conversation not found")

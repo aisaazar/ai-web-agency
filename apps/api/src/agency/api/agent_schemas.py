@@ -13,6 +13,7 @@ class ConversationCreateIn(BaseModel):
 
 class ConversationCreateOut(BaseModel):
     conversation_id: UUID
+    visitor_token: str
     consent_notice: str
 
 

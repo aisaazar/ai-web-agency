@@ -123,6 +123,44 @@ def test_site_build_endpoint_reaches_preview_ready(tmp_path, monkeypatch):
     session.close()
 
 
+def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+    captured: dict[tuple[str, ...], dict[str, str]] = {}
+
+    import agency.services.site_build_service as build_module
+
+    def fake_run(command, *, cwd, env):
+        captured[tuple(command)] = {
+            "client_id": env["NEXT_PUBLIC_AGENCY_CLIENT_ID"],
+            "site_id": env["NEXT_PUBLIC_AGENCY_SITE_ID"],
+            "lead_api": env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"],
+            "agent_api": env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"],
+        }
+        return True, f"mocked: {' '.join(command)}"
+
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_LEAD_API_URL", "https://api.example.test/")
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_AGENT_API_URL", "")
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_CLIENT_ID", "wrong-client")
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_SITE_ID", "wrong-site")
+    monkeypatch.setattr(build_module, "_run", fake_run)
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
+
+    app = create_app(database_url)
+    response = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert response.status_code == 201
+    build_env = captured[("npm", "run", "build:site")]
+    assert build_env["client_id"] == str(client.id)
+    assert build_env["lead_api"] == "https://api.example.test"
+    assert build_env["agent_api"] == "https://api.example.test"
+    assert UUID(build_env["site_id"])
+
 def test_publish_approval_binds_to_exact_build_artifact(tmp_path, monkeypatch):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
     org, client, content_id, design_id = _seed(database_url)

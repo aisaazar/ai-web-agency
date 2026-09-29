@@ -5,6 +5,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "http://localhost:8000";
 const ORG_ID = process.env.AGENCY_ORG_ID;
+const RESEARCH_PROVIDER = process.env.AGENCY_RESEARCH_PROVIDER?.trim() || "mock";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       break;
     case "research":
       path = "/v1/research";
-      payload = { ...base, provider: "mock" };
+      payload = { ...base, provider: RESEARCH_PROVIDER };
       break;
     case "approve-research":
       path = "/v1/research/approve";

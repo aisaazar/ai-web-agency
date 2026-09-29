@@ -17,6 +17,7 @@ export function AgentWidget() {
   const [consent, setConsent] = useState(false);
   const [started, setStarted] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [visitorToken, setVisitorToken] = useState<string | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,14 +34,14 @@ export function AgentWidget() {
         `${API_URL}/v1/agent/clients/${CLIENT_ID}/conversations`,
         {
           method: "POST",
-          credentials: "include",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ consent: true }),
         },
       );
       if (!response.ok) throw new Error(`agent start failed: ${response.status}`);
-      const data = (await response.json()) as { conversation_id: string };
+      const data = (await response.json()) as { conversation_id: string; visitor_token: string };
       setConversationId(data.conversation_id);
+      setVisitorToken(data.visitor_token);
       setStarted(true);
     } catch {
       setError(UI.agentUnavailable);
@@ -63,8 +64,10 @@ export function AgentWidget() {
         `${API_URL}/v1/agent/conversations/${conversationId}/messages`,
         {
           method: "POST",
-          credentials: "include",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "X-Agent-Visitor-Token": visitorToken ?? "",
+          },
           body: JSON.stringify({ message: text }),
         },
       );

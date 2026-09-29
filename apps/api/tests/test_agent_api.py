@@ -99,12 +99,16 @@ def test_agent_requires_consent_and_answers_from_approved_content(tmp_path):
                 json={"consent": True},
             )
             conversation_id = started.json()["conversation_id"]
+            visitor_token = started.json()["visitor_token"]
+            http.cookies.clear()
             answered = await http.post(
                 f"/v1/agent/conversations/{conversation_id}/messages",
+                headers={"X-Agent-Visitor-Token": visitor_token},
                 json={"message": "Wie vereinbare ich einen Termin?"},
             )
             history = await http.get(
-                f"/v1/agent/conversations/{conversation_id}/messages"
+                f"/v1/agent/conversations/{conversation_id}/messages",
+                headers={"X-Agent-Visitor-Token": visitor_token},
             )
             return started, answered, history
 
