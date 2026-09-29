@@ -161,8 +161,10 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         or env.get("AGENCY_PUBLIC_API_URL")
     )
     if public_api_url:
-        env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"] = public_api_url.rstrip("/")
-        env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"] = public_api_url.rstrip("/")
+        lead_api_url = env.get("NEXT_PUBLIC_AGENCY_LEAD_API_URL") or public_api_url
+        agent_api_url = env.get("NEXT_PUBLIC_AGENCY_AGENT_API_URL") or public_api_url
+        env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"] = lead_api_url.rstrip("/")
+        env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"] = agent_api_url.rstrip("/")
     try:
         passed_build, build_detail = _run(["npm", "run", "build:site"], cwd=REPO_ROOT, env=env)
     finally:

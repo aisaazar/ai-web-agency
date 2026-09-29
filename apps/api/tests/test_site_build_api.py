@@ -161,6 +161,40 @@ def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch)
     assert build_env["agent_api"] == "https://api.example.test"
     assert UUID(build_env["site_id"])
 
+
+def test_site_build_preserves_separate_public_runtime_endpoints(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+    captured: dict[str, str] = {}
+
+    import agency.services.site_build_service as build_module
+
+    def fake_run(command, *, cwd, env):
+        captured.update({
+            "lead_api": env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"],
+            "agent_api": env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"],
+        })
+        return True, f"mocked: {' '.join(command)}"
+
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_LEAD_API_URL", "https://leads.example.test/")
+    monkeypatch.setenv("NEXT_PUBLIC_AGENCY_AGENT_API_URL", "https://agent.example.test/")
+    monkeypatch.setattr(build_module, "_run", fake_run)
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
+
+    response = _post(create_app(database_url), "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert response.status_code == 201
+    assert captured == {
+        "lead_api": "https://leads.example.test",
+        "agent_api": "https://agent.example.test",
+    }
+
+
 def test_publish_approval_binds_to_exact_build_artifact(tmp_path, monkeypatch):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
     org, client, content_id, design_id = _seed(database_url)
