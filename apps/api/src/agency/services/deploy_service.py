@@ -114,6 +114,17 @@ def _live_deploy(session: Session, *, org_id, site_id) -> Deploy | None:
     ).order_by(Deploy.created_at.desc()))
 
 
+def _supersede_live_deploys(session: Session, *, org_id, site_id) -> None:
+    session.query(Deploy).filter(
+        Deploy.org_id == org_id,
+        Deploy.site_version_id.in_(
+            select(SiteVersion.id).where(SiteVersion.site_id == site_id)
+        ),
+        Deploy.environment == "production",
+        Deploy.status == "live",
+    ).update({"status": "superseded"}, synchronize_session=False)
+
+
 def _bundle_for_version(version: SiteVersion) -> BuildBundle:
     output_dir = BUILD_BUNDLES_ROOT / version.build_hash
     if not output_dir.is_dir():
@@ -280,6 +291,7 @@ def publish_site(
         else version.build_hash
     )
     promoted = _as_deploy_error("publish", lambda: deployer.promote(promote_ref))
+    _supersede_live_deploys(session, org_id=org_id, site_id=site.id)
 
     record = Deploy(
         org_id=org_id,
@@ -442,6 +454,7 @@ def rollback_site(
     promoted = _as_deploy_error(
         "rollback", lambda: deployer.rollback(str(current_site.id), rollback_ref)
     )
+    _supersede_live_deploys(session, org_id=org_id, site_id=current_site.id)
     record = Deploy(
         org_id=org_id,
         site_version_id=target_version.id,
