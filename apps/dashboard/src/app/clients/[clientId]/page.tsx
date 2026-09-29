@@ -47,6 +47,9 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const latestPreview = detail.deployments.find(
     (item) => item.environment === "preview" && item.siteVersionId === siteVersion?.id,
   );
+  const latestProduction = detail.deployments.find(
+    (item) => item.environment === "production",
+  );
   const rollbackTargets = detail.siteVersions.filter(
     (item) => item.buildHash !== detail.currentBuildHash,
   );
@@ -122,10 +125,10 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       <div className="grid two">
         <div><div className="muted">Current build</div><div className="mono">{detail.currentBuildHash ?? "—"}</div></div>
         <div>
-          <div className="muted">Latest deployment</div>
-          <div>{detail.deployments[0]?.url || "—"}</div>
-          {detail.deployments[0] ? (
-            <Link className="button secondaryButton" href={`/clients/${clientId}/deployments/${detail.deployments[0].id}`} style={{ marginTop: 10 }}>
+          <div className="muted">Latest production deployment</div>
+          <div>{latestProduction?.url || "—"}</div>
+          {latestProduction ? (
+            <Link className="button secondaryButton" href={`/clients/${clientId}/deployments/${latestProduction.id}`} style={{ marginTop: 10 }}>
               View deployment logs
             </Link>
           ) : null}
