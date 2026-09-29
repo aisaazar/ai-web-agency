@@ -312,3 +312,40 @@ def test_publish_deploy_requires_exact_build_and_reaches_live(tmp_path, monkeypa
     assert deployed.status_code == 201
     assert deployed.json()["state"] == "LIVE"
     assert deployed.json()["status"] == "live"
+
+
+def test_site_build_failure_persists_diagnostics(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url)
+
+    import agency.services.site_build_service as build_module
+
+    def failing_run(command, *, cwd, env):
+        return False, f"mocked failure: {' '.join(command)}"
+
+    monkeypatch.setattr(build_module, "_run", failing_run)
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
+
+    app = create_app(database_url)
+    response = _post(app, "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert response.status_code == 400
+    assert "build validation failed" in response.json()["detail"]
+
+    session = create_session_factory(database_url)()
+    pipeline = session.query(PipelineRun).filter(
+        PipelineRun.org_id == org.id,
+        PipelineRun.client_id == client.id,
+    ).order_by(PipelineRun.created_at.desc()).first()
+    validations = session.query(BuildValidation).all()
+
+    assert pipeline is not None
+    assert pipeline.state == "BUILD_FAILED"
+    assert len(validations) == 11
+    assert any(not item.passed for item in validations)
+    session.close()

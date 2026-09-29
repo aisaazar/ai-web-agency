@@ -39,6 +39,10 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
                 "state": "PREVIEW_READY",
             }
         except SiteBuildError as exc:
+            # The build service records BUILD_FAILED plus validation evidence.
+            # Commit that diagnostic state before surfacing the HTTP error so
+            # the failed build remains inspectable and retryable.
+            session.commit()
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return router
