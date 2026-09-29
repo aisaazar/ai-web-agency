@@ -97,6 +97,57 @@ def test_rollback_rejects_unknown_build_hash(tmp_path):
         rollback_site(session, org_id=org.id, client_id=client.id, build_hash="3" * 64)
     session.close()
 
+
+def test_rollback_rejects_inconsistent_artifact_site_version_binding(tmp_path):
+    session, org, client, site, target = _seed(tmp_path)
+    artifact = session.scalar(select(Artifact).where(
+        Artifact.org_id == org.id,
+        Artifact.artifact_type == "site_build",
+        Artifact.build_hash == target.build_hash,
+    ))
+    artifact.payload_json = {**artifact.payload_json, "site_version_id": str(site.id)}
+    session.flush()
+    provider = FakeDeploymentProvider()
+
+    with pytest.raises(DeployError, match="site_version binding is inconsistent"):
+        rollback_site(
+            session,
+            org_id=org.id,
+            client_id=client.id,
+            build_hash=target.build_hash,
+            provider=provider,
+        )
+
+    assert provider.calls == []
+    session.close()
+
+
+def test_rollback_rejects_inconsistent_artifact_client_binding(tmp_path):
+    session, org, client, _, target = _seed(tmp_path)
+    artifact = session.scalar(select(Artifact).where(
+        Artifact.org_id == org.id,
+        Artifact.artifact_type == "site_build",
+        Artifact.build_hash == target.build_hash,
+    ))
+    artifact.payload_json = {
+        **artifact.payload_json,
+        "client_id": "00000000-0000-0000-0000-000000000000",
+    }
+    session.flush()
+    provider = FakeDeploymentProvider()
+
+    with pytest.raises(DeployError, match="client binding is inconsistent"):
+        rollback_site(
+            session,
+            org_id=org.id,
+            client_id=client.id,
+            build_hash=target.build_hash,
+            provider=provider,
+        )
+
+    assert provider.calls == []
+    session.close()
+
 def test_attach_domain_requires_live_site_and_normalizes_fqdn(tmp_path):
     session, org, client, site, _ = _seed(tmp_path)
     provider = FakeDeploymentProvider()

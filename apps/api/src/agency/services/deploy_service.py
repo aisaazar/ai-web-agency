@@ -67,7 +67,20 @@ def _normalize_fqdn(value: str) -> str:
     return fqdn
 
 
-def _published_build_artifact(session: Session, *, org_id, version: SiteVersion) -> Artifact:
+def _assert_exact_build_artifact(*, artifact: Artifact, client_id, version: SiteVersion) -> Artifact:
+    payload = artifact.payload_json
+    if payload.get("client_id") != str(client_id):
+        raise DeployError("site build artifact client binding is inconsistent")
+    if payload.get("site_version_id") != str(version.id):
+        raise DeployError("site build artifact site_version binding is inconsistent")
+    if payload.get("build_hash") != version.build_hash or artifact.build_hash != version.build_hash:
+        raise DeployError("site build artifact build_hash binding is inconsistent")
+    if artifact.input_artifact_id != version.content_artifact_id:
+        raise DeployError("site build artifact input binding is inconsistent")
+    return artifact
+
+
+def _published_build_artifact(session: Session, *, org_id, client_id, version: SiteVersion) -> Artifact:
     """The exact immutable build artifact of a site version, plus its binding publish approval."""
     artifact = session.scalar(select(Artifact).where(
         Artifact.org_id == org_id,
@@ -78,6 +91,7 @@ def _published_build_artifact(session: Session, *, org_id, version: SiteVersion)
     ))
     if artifact is None:
         raise DeployError("site build artifact not found for exact build_hash")
+    _assert_exact_build_artifact(artifact=artifact, client_id=client_id, version=version)
     approved = session.scalar(select(Approval).where(
         Approval.org_id == org_id,
         Approval.artifact_id == artifact.id,
@@ -168,6 +182,7 @@ def create_preview(
     ))
     if build_artifact is None:
         raise DeployError("site build artifact not found for exact build_hash")
+    _assert_exact_build_artifact(artifact=build_artifact, client_id=client_id, version=version)
 
     existing = session.scalar(select(Deploy).where(
         Deploy.org_id == org_id,
@@ -235,7 +250,9 @@ def publish_site(
         build_hash=version.build_hash,
     )
 
-    build_artifact = _published_build_artifact(session, org_id=org_id, version=version)
+    build_artifact = _published_build_artifact(
+        session, org_id=org_id, client_id=client_id, version=version
+    )
 
     preview_deploy = session.scalar(select(Deploy).where(
         Deploy.org_id == org_id,
@@ -388,6 +405,7 @@ def rollback_site(
     ))
     if target_artifact is None:
         raise DeployError("target site build artifact not found")
+    _assert_exact_build_artifact(artifact=target_artifact, client_id=client_id, version=target_version)
 
     approved = session.scalar(select(Approval).where(
         Approval.org_id == org_id,
