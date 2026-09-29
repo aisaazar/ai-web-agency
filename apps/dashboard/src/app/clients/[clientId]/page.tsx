@@ -70,6 +70,9 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
     case "DESIGN_APPROVED":
       if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;
       break;
+    case "BUILD_FAILED":
+      if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Retry failed build</ActionForm>;
+      break;
     case "PREVIEW_READY":
       if (build && siteVersion && !latestPreview) {
         action = <ActionForm action="preview" clientId={clientId} hidden={{ site_version_id: siteVersion.id }}>Deploy preview</ActionForm>;
