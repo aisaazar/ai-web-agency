@@ -6,6 +6,7 @@ const API_BASE_URL =
   "http://localhost:8000";
 const ORG_ID = process.env.AGENCY_ORG_ID;
 const RESEARCH_PROVIDER = process.env.AGENCY_RESEARCH_PROVIDER?.trim() || "mock";
+const DEPLOY_PROVIDER = process.env.AGENCY_DEPLOY_PROVIDER?.trim() || "local_static";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         return NextResponse.json({ detail: "Invalid site_version_id" }, { status: 400 });
       }
       path = "/v1/deploys/preview";
-      payload = { ...base, site_version_id: siteVersionId, provider: "local_static" };
+      payload = { ...base, site_version_id: siteVersionId, provider: DEPLOY_PROVIDER };
       break;
     }
     case "rollback": {
