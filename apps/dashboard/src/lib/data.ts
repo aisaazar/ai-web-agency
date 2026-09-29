@@ -312,8 +312,11 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
 }
 
 export async function fetchDeploymentLogs(clientId: string, deployId: string): Promise<string> {
-  const sessionCookie = (await cookies()).get("agency_session")?.value;
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("agency_session")?.value;
+  const csrfCookie = cookieStore.get("agency_csrf")?.value;
   if (!sessionCookie) redirect("/login");
+  if (!csrfCookie) throw new Error("agency_csrf cookie is required for dashboard API access");
   if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
 
   const response = await fetch(API_BASE_URL + "/v1/deploys/logs", {
@@ -321,7 +324,8 @@ export async function fetchDeploymentLogs(clientId: string, deployId: string): P
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      Cookie: "agency_session=" + sessionCookie,
+      Cookie: "agency_session=" + sessionCookie + "; agency_csrf=" + csrfCookie,
+      "X-CSRF-Token": csrfCookie,
     },
     body: JSON.stringify({ org_id: ORG_ID, client_id: clientId, deploy_id: deployId }),
   });
