@@ -44,7 +44,9 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const design = findArtifact(detail, "design_plan");
   const build = findArtifact(detail, "site_build");
   const siteVersion = detail.siteVersions[0];
-  const latestPreview = detail.deployments.find((item) => item.environment === "preview");
+  const latestPreview = detail.deployments.find(
+    (item) => item.environment === "preview" && item.siteVersionId === siteVersion?.id,
+  );
   const rollbackTargets = detail.siteVersions.filter(
     (item) => item.buildHash !== detail.currentBuildHash,
   );

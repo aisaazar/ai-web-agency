@@ -28,6 +28,7 @@ export interface DashboardArtifact {
 
 export interface DashboardDeployment {
   id: string;
+  siteVersionId: string;
   client: string;
   provider: string;
   environment: "preview" | "production" | string;
@@ -148,6 +149,7 @@ type DashboardOverview = {
   }>;
   deployments: Array<{
     id: string;
+    site_version_id: string;
     client: string;
     provider: string;
     environment: string;
@@ -237,6 +239,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
     }>;
     deployments: Array<{
       id: string;
+      site_version_id: string;
       client: string;
       provider: string;
       environment: string;
@@ -292,6 +295,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
     })),
     deployments: data.deployments.map((item) => ({
       id: item.id,
+      siteVersionId: item.site_version_id,
       client: item.client,
       provider: item.provider,
       environment: item.environment,
@@ -435,6 +439,7 @@ export async function fetchDashboard(): Promise<DashboardDataAdapter> {
     deployments: async () =>
       data.deployments.map((deployment) => ({
         id: deployment.id,
+        siteVersionId: deployment.site_version_id,
         client: deployment.client,
         provider: deployment.provider,
         environment: deployment.environment,

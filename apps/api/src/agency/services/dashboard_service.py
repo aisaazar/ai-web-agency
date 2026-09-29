@@ -79,6 +79,7 @@ def get_overview(session: Session, *, org_id: UUID) -> dict:
         "deployments": [
             {
                 "id": deployment.id,
+                "site_version_id": deployment.site_version_id,
                 "client": client_map.get(
                     site_clients.get(str(deployment.site_version_id))
                 ).name
@@ -245,6 +246,7 @@ def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dic
         "deployments": [
             {
                 "id": deployment.id,
+                "site_version_id": deployment.site_version_id,
                 "client": client.name,
                 "provider": deployment.provider,
                 "environment": deployment.environment,

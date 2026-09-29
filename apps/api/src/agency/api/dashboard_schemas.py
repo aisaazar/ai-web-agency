@@ -35,6 +35,7 @@ class DashboardArtifactOut(BaseModel):
 class DashboardDeploymentOut(BaseModel):
     id: UUID
     client: str
+    site_version_id: UUID
     provider: str
     environment: str
     status: str
