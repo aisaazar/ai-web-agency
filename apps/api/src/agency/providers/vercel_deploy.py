@@ -168,7 +168,16 @@ class VercelDeploymentProvider(DeploymentProvider):
         deployment_ref = match.get("id") or match.get("url")
         if not isinstance(deployment_ref, str):
             raise VercelDeploymentError("matched Vercel deployment has no reference")
-        return self.promote(deployment_ref)
+        deployment_url = match.get("url")
+        if not isinstance(deployment_url, str) or not deployment_url:
+            raise VercelDeploymentError("matched Vercel deployment has no url")
+        result = self.promote(deployment_ref)
+        return DeployResult(
+            self.name,
+            result.deploy_ref,
+            result.status,
+            deployment_url if deployment_url.startswith("http") else f"https://{deployment_url}",
+        )
 
     def attach_domain(self, site_id: str, fqdn: str) -> DomainResult:
         domain = fqdn.strip().lower().rstrip(".")
