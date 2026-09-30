@@ -32,7 +32,13 @@ page.on("pageerror", (error) => consoleErrors.push(error.message));
 try {
   const checkedLinks = new Set();
   for (const route of routes) {
-    const response = await page.goto(`http://127.0.0.1:4173${route}`, { waitUntil: "networkidle" });
+    // `networkidle` is not a usable readiness signal on a client site: a production build that
+    // passes the gate has Turnstile enabled, and Turnstile keeps talking to
+    // challenges.cloudflare.com for as long as the page is open, so the network never goes idle.
+    // `load` still requires every local subresource to arrive, and the assertions that follow -
+    // route 200, h1 present, every internal link resolving, axe clean, form wired - are what
+    // this smoke actually proves.
+    const response = await page.goto(`http://127.0.0.1:4173${route}`, { waitUntil: "load" });
     if (!response || !response.ok()) throw new Error(`${route} returned ${response?.status()}`);
     if (await page.locator("h1").first().count() === 0) throw new Error(`${route} has no h1`);
     for (const href of await page.locator("a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
@@ -41,7 +47,7 @@ try {
     }
   }
   for (const href of checkedLinks) {
-    const response = await page.goto(`http://127.0.0.1:4173${href}`, { waitUntil: "networkidle" });
+    const response = await page.goto(`http://127.0.0.1:4173${href}`, { waitUntil: "load" });
     if (!response || !response.ok()) throw new Error(`broken internal link: ${href} -> ${response?.status()}`);
   }
 

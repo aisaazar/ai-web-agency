@@ -87,16 +87,33 @@ _SECRET_ENV_MARKERS = ("API_KEY", "_TOKEN", "_SECRET", "PASSWORD", "_CREDENTIAL"
 
 def _build_environment() -> dict[str, str]:
     """Give the static-site build only non-secret process configuration."""
-    env = {
-        key: value
-        for key, value in os.environ.items()
-        if not any(marker in key.upper() for marker in _SECRET_ENV_MARKERS)
-    }
+    env: dict[str, str] = {}
+    for key, value in os.environ.items():
+        if any(marker in key.upper() for marker in _SECRET_ENV_MARKERS):
+            continue
+        # Windows treats PATH/Path case-insensitively. Canonicalize it here so
+        # the subprocess environment never contains duplicate path entries.
+        if key.upper() == "PATH":
+            env["PATH"] = value
+        else:
+            env[key] = value
     env["PRODUCTION_BUILD"] = "1"
     return env
 
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, str]:
+    executable = command[0]
+    if executable == "npm" and env.get("AGENCY_NPM_COMMAND"):
+        executable = env["AGENCY_NPM_COMMAND"]
+    elif executable == "npm" and shutil.which(executable, path=env.get("PATH")) is None:
+        program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432") or "C:/Program Files"
+        candidates = [
+            Path(program_files) / "nodejs" / "npm.cmd",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "nodejs" / "npm.cmd",
+            Path(os.environ.get("APPDATA", "")) / "npm" / "npm.cmd",
+        ]
+        executable = next((str(path) for path in candidates if path.is_file()), executable)
+    command = [executable, *command[1:]]
     result = subprocess.run(
         command,
         cwd=cwd,

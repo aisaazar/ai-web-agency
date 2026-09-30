@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -7,12 +8,32 @@ import httpx
 
 from agency.api import create_app
 from agency.db.auth_models import AuditLog
-from agency.db.models import Deploy, Org, SiteVersion
+from agency.db.models import BuildValidation, Deploy, Org, SiteVersion
 from agency.db.session import create_all, create_session_factory
 from agency.providers.deploy import LocalStaticDeploymentProvider
 
 
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
+
+
+def client_content_payload() -> dict:
+    """The client artifact this lifecycle builds, derived from the reference fixture.
+
+    The tracked fixture is only *read*: it stays `meta.is_fixture = true` with
+    `legal_review_status = "pending"`, so the production content gate keeps rejecting it - the
+    assertions below pin that, and `scripts/content-gate-policy.test.mjs` proves the gate still
+    fails closed on it. A production build, however, may only run in the posture of a real
+    client whose legal texts a lawyer has signed off. The copy lives in memory, so no fixture
+    state is corrupted and nothing on disk is disguised.
+    """
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    assert payload["meta"]["is_fixture"] is True, "the tracked fixture must stay a fixture"
+    assert payload["compliance"]["legal_review_status"] == "pending", (
+        "the tracked fixture must stay legally unreviewed"
+    )
+    payload["meta"]["is_fixture"] = False
+    payload["compliance"]["legal_review_status"] = "reviewed"
+    return payload
 
 
 def _request(app, method, path, **kwargs):
@@ -57,9 +78,19 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
         return destination
 
     provider = LocalStaticDeploymentProvider(dist_root=deploy_root)
-    monkeypatch.setattr(build_module, "_run", fake_run)
-    monkeypatch.setattr(build_module, "_persist_build_bundle", fake_persist)
-    monkeypatch.setattr(build_module, "BUILD_ROOT", build_root)
+    real_build = os.getenv("RUN_REAL_E2E") == "1"
+    if real_build:
+        # A production build refuses to run without the public client configuration it renders
+        # into the site, so the run supplies browser-facing values of the same kind a real
+        # client build receives: a public API origin and a Turnstile *site* key. Neither is a
+        # secret, and no assertion reads either of them back.
+        monkeypatch.setenv("NEXT_PUBLIC_AGENCY_LEAD_API_URL", "https://e2e-api.example.test")
+        monkeypatch.setenv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "1x00000000000000000000AA")
+        monkeypatch.setattr(build_module, "BUILD_ROOT", build_root)
+    else:
+        monkeypatch.setattr(build_module, "_run", fake_run)
+        monkeypatch.setattr(build_module, "_persist_build_bundle", fake_persist)
+        monkeypatch.setattr(build_module, "BUILD_ROOT", build_root)
     monkeypatch.setattr(deploy_module, "BUILD_BUNDLES_ROOT", build_root)
     monkeypatch.setattr(deploy_api, "get_deployment_provider", lambda _name="local_static": provider)
     monkeypatch.setattr(deploy_module, "get_deployment_provider", lambda _name="local_static": provider)
@@ -129,7 +160,7 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
     assert research_approval.status_code == 200
     assert research_approval.json()["state"] == "RESEARCH_APPROVED"
 
-    content = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    content = client_content_payload()
     content.update({"org_id": org_id, "client_id": client_id, "_fact_keys": ["phone", "city"]})
     generated = _request(app, "POST", "/v1/content", json=content)
     assert generated.status_code == 201
@@ -175,9 +206,29 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
             "design_artifact_id": design_id,
         },
     )
-    assert build.status_code == 201
+    assert build.status_code == 201, build.text
     build_data = build.json()
     build_hash = build_data["build_hash"]
+
+    if real_build:
+        # `npm run build:site` runs the production content gate as its prebuild step, so a build
+        # that reached 201 here passed fixture_policy and legal_review_policy for real. The
+        # persisted rows are the proof that the gate ran and that no check was skipped.
+        validation_session = create_session_factory(database_url)()
+        recorded = (
+            validation_session.query(BuildValidation)
+            .filter(BuildValidation.org_id == org.id)
+            .all()
+        )
+        validation_session.close()
+        assert {row.check_name for row in recorded} >= {
+            "content_schema",
+            "next_build",
+            "claims_policy",
+            "required_legal_pages",
+        }
+        failed = [(row.check_name, row.detail_json) for row in recorded if not row.passed]
+        assert failed == [], failed
 
     preview = _request(
         app,

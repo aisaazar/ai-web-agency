@@ -23,6 +23,8 @@
     "typecheck:site": "npm run typecheck --workspace @ai-web-agency/template-base",
     "qa:smoke": "node scripts/site-smoke.mjs",
     "test:python": "node scripts/py.mjs -m pytest apps/api/tests -q",
+    "test:gate-policy": "node --test scripts/content-gate-policy.test.mjs",
+    "test:release-e2e": "node scripts/run-release-e2e.mjs",
     "test:site": "npm run contracts:check && npm run tokens:check && npm run validate && npm run typecheck:site && npm run build:site && npm run validate:output && npm run qa:smoke",
     "dashboard:security:check": "node scripts/dashboard-csrf-check.mjs",
     "typecheck:dashboard": "npm run typecheck --workspace @ai-web-agency/dashboard",
@@ -30,7 +32,7 @@
     "test:dashboard": "npm run dashboard:security:check && npm run typecheck:dashboard && npm run build:dashboard",
     "db:backup": "node scripts/py.mjs scripts/sqlite_backup.py backup agency.db .artifacts/backups/agency.db",
     "db:restore": "node scripts/py.mjs scripts/sqlite_backup.py restore .artifacts/backups/agency.db agency-restored.db",
-    "test": "npm run audit:secrets && npm run test:production-config && npm run test:python && npm run test:site && npm run test:dashboard",
+    "test": "npm run audit:secrets && npm run test:production-config && npm run test:gate-policy && npm run test:python && npm run test:site && npm run test:dashboard",
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
     "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard"
