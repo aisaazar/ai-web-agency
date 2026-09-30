@@ -25,8 +25,16 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
+def test_production_requires_database_url(monkeypatch):
+    monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.delenv("AGENCY_DATABASE_URL", raising=False)
+    with pytest.raises(RuntimeError, match="AGENCY_DATABASE_URL"):
+        create_app()
+
+
 def test_production_rejects_insecure_origin(monkeypatch):
     monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_DATABASE_URL", "sqlite:///tmp/agency.db")
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "http://client.example")
     monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
 

@@ -33,6 +33,7 @@ test("production preflight fails closed when required runtime config is absent",
 test("production preflight accepts structurally valid synthetic Vercel config", () => {
   const code = run({
     AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "postgresql://db.example/agency",
     AGENCY_ALLOWED_ORIGINS: "https://client.example",
     AGENCY_COOKIE_SECURE: "true",
     AGENCY_TURNSTILE_SECRET: "synthetic",
@@ -43,9 +44,22 @@ test("production preflight accepts structurally valid synthetic Vercel config", 
   assert.equal(code, 0);
 });
 
+test("production preflight rejects the default local database path", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "sqlite:///agency.db",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "local_static",
+  });
+  assert.equal(code, 1);
+});
+
 test("production preflight rejects insecure origins", () => {
   const code = run({
     AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "sqlite:///var/lib/agency.db",
     AGENCY_ALLOWED_ORIGINS: "http://client.example",
     AGENCY_COOKIE_SECURE: "true",
     AGENCY_TURNSTILE_SECRET: "synthetic",

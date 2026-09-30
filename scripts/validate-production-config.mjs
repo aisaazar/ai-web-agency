@@ -16,6 +16,11 @@ if (environment && environment.toLowerCase() !== "production") {
   failures.push("AGENCY_ENV must be production");
 }
 
+const databaseUrl = required("AGENCY_DATABASE_URL");
+if (databaseUrl && /^sqlite:\/\/\/?agency\.db$/i.test(databaseUrl)) {
+  failures.push("AGENCY_DATABASE_URL must not use the default local agency.db path");
+}
+
 const origins = required("AGENCY_ALLOWED_ORIGINS");
 if (origins) {
   for (const origin of origins.split(",").map((item) => item.trim()).filter(Boolean)) {

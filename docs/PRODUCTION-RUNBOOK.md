@@ -6,6 +6,7 @@ Set these values only in the deployment secret store:
 - AGENCY_ALLOWED_ORIGINS=https://<client-domain>
 - AGENCY_COOKIE_SECURE=true
 - AGENCY_TURNSTILE_SECRET=<server secret>
+- AGENCY_DATABASE_URL=<production database URL>
 - NEXT_PUBLIC_TURNSTILE_SITE_KEY=<public site key>
 - NEXT_PUBLIC_AGENCY_LEAD_API_URL=https://<api-origin>
 - NEXT_PUBLIC_AGENCY_AGENT_API_URL=https://<api-origin> when the customer agent is enabled

@@ -26,13 +26,17 @@ from agency.services.rate_limit_service import RateLimitError, enforce
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
-    database_url = database_url or os.getenv("AGENCY_DATABASE_URL", "sqlite:///agency.db").strip()
-    if not database_url:
+    environment = os.getenv("AGENCY_ENV", "development").strip().lower()
+    configured_database_url = os.getenv("AGENCY_DATABASE_URL", "").strip()
+    if database_url is None:
+        if environment == "production" and not configured_database_url:
+            raise RuntimeError("production requires AGENCY_DATABASE_URL")
+        database_url = configured_database_url or "sqlite:///agency.db"
+    if not database_url.strip():
         raise RuntimeError("database URL must not be empty")
     session_factory: sessionmaker = create_session_factory(database_url)
     create_all(database_url)
     app = FastAPI(title="AI Web Agency API", version="0.1.0")
-    environment = os.getenv("AGENCY_ENV", "development").strip().lower()
     origins = [item.strip() for item in os.getenv("AGENCY_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
     if environment == "production":
         if not origins or any(origin == "*" or not origin.lower().startswith("https://") for origin in origins):
