@@ -56,6 +56,19 @@ test("production preflight rejects the default local database path", () => {
   assert.equal(code, 1);
 });
 
+test("production preflight rejects legacy unauthenticated access", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "sqlite:///var/lib/agency.db",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "local_static",
+    AGENCY_ALLOW_LEGACY_UNAUTH: "true",
+  });
+  assert.equal(code, 1);
+});
+
 test("production preflight rejects insecure origins", () => {
   const code = run({
     AGENCY_ENV: "production",

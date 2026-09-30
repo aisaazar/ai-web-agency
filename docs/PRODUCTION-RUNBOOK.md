@@ -36,6 +36,7 @@ The dashboard/API deployment actions are `/v1/deploys/preview`, `/v1/deploys/pub
 Domain attachment requires an existing live deployment and normalizes a DNS hostname before calling the provider. Deployment logs are client-scoped and cannot be read across client boundaries.
 
 ## Production hardening
+- `AGENCY_ALLOW_LEGACY_UNAUTH` is a local/test opt-in only. Production runtime preflight and API startup reject it.
 - Unhandled API exceptions emit a structured, secret-safe error event with a request ID; clients receive the same request ID for support/debug correlation.
 - The built-in reporter writes through the normal application logger and has no paid-service dependency. An external provider can be added later behind the same seam.
 - Per-site deploy tokens are a runbook rule, not a code rule: `VERCEL_TOKEN` is the platform token and must be scoped to the target project by hand. Rotate it whenever a client leaves.

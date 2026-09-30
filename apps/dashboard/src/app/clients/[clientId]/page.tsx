@@ -13,8 +13,9 @@ const stages = [
   ["RESEARCHING", "Research"], ["RESEARCH_COMPLETE", "Research review"], ["RESEARCH_APPROVED", "Research approved"],
   ["CONTENT_GENERATING", "Content"], ["CONTENT_COMPLETE", "Content review"], ["CONTENT_APPROVED", "Content approved"],
   ["DESIGNING", "Design"], ["DESIGN_APPROVED", "Design approved"], ["BUILDING", "Build"],
-  ["BUILD_COMPLETE", "Build complete"], ["PREVIEW_READY", "Preview review"], ["PREVIEW_APPROVED", "Preview approved"],
-  ["PUBLISHING", "Publishing"], ["LIVE", "Live"],
+  ["BUILD_FAILED", "Build failed"], ["BUILD_COMPLETE", "Build complete"],
+  ["PREVIEW_READY", "Preview review"], ["PREVIEW_APPROVED", "Preview approved"],
+  ["PUBLISHING", "Publishing"], ["LIVE", "Live"], ["FAILED", "Failed"],
 ] as const;
 
 function ActionForm({ action, clientId, hidden = {}, children }: {
@@ -75,6 +76,9 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       break;
     case "BUILD_FAILED":
       if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Retry failed build</ActionForm>;
+      break;
+    case "FAILED":
+      action = <ActionForm action="generate-content" clientId={clientId} hidden={{ provider: "local" }}>Retry failed content generation</ActionForm>;
       break;
     case "PREVIEW_READY":
       if (build && siteVersion && !latestPreview) {

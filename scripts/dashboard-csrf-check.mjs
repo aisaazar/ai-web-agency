@@ -23,4 +23,19 @@ for (const fragment of required) {
   }
 }
 
+const clientPage = readFileSync(
+  join(root, "apps", "dashboard", "src", "app", "clients", "[clientId]", "page.tsx"),
+  "utf8",
+);
+const failedRetry = [
+  'case "FAILED":',
+  'action="generate-content"',
+  "Retry failed content generation",
+];
+for (const fragment of failedRetry) {
+  if (!clientPage.includes(fragment)) {
+    throw new Error("FAILED pipeline recovery regression: missing " + fragment);
+  }
+}
+
 console.log("dashboard-csrf-check: PASS");

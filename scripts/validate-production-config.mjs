@@ -45,6 +45,11 @@ if (!["1", "true", "yes"].includes(secureCookie)) {
 
 required("AGENCY_TURNSTILE_SECRET");
 
+const legacyUnauth = (process.env.AGENCY_ALLOW_LEGACY_UNAUTH ?? "").trim().toLowerCase();
+if (["1", "true", "yes"].includes(legacyUnauth)) {
+  failures.push("AGENCY_ALLOW_LEGACY_UNAUTH is forbidden in production");
+}
+
 const provider = required("AGENCY_DEPLOY_PROVIDER").toLowerCase();
 if (!["local_static", "vercel"].includes(provider)) {
   failures.push("AGENCY_DEPLOY_PROVIDER must be local_static or vercel");

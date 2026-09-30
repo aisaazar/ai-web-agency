@@ -34,6 +34,32 @@ def _post(app, payload):
     return anyio.run(request)
 
 
+def test_lead_payload_does_not_store_turnstile_token_or_honeypot(tmp_path):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    site = _seed(database_url)
+    response = _post(create_app(database_url), {
+        "site_id": str(site.id),
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "message": "Ich möchte einen Termin vereinbaren.",
+        "consent": True,
+        "website": "https://spam.example",
+        "turnstile_token": "synthetic-turnstile-token",
+    })
+    assert response.status_code == 201
+
+    from agency.db.models import LeadSubmission
+
+    session = create_session_factory(database_url)()
+    lead = session.query(LeadSubmission).one()
+    stored = lead.payload_json
+    session.close()
+    assert "turnstile_token" not in stored
+    assert "website" not in stored
+    assert stored["email"] == "jane@example.com"
+    assert stored["consent"] is True
+
+
 def test_lead_api_persists_a_real_lead(tmp_path):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
     site = _seed(database_url)

@@ -49,6 +49,8 @@ def create_app(database_url: str | None = None) -> FastAPI:
             raise RuntimeError("production requires AGENCY_COOKIE_SECURE=true")
         if not os.getenv("AGENCY_TURNSTILE_SECRET", "").strip():
             raise RuntimeError("production requires AGENCY_TURNSTILE_SECRET")
+        if os.getenv("AGENCY_ALLOW_LEGACY_UNAUTH", "").strip().lower() in {"1", "true", "yes"}:
+            raise RuntimeError("production forbids AGENCY_ALLOW_LEGACY_UNAUTH")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

@@ -82,7 +82,7 @@ def create_lead(
         org_id=site.org_id,
         site_id=site.id,
         client_id=client.id,
-        payload_json=payload.model_dump(mode="json"),
+        payload_json=payload.model_dump(mode="json", exclude={"turnstile_token", "website"}),
         name=payload.name.strip(),
         email=payload.email.strip().lower(),
         phone=payload.phone.strip() if payload.phone else None,

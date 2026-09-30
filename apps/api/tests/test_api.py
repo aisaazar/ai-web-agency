@@ -51,6 +51,18 @@ def test_production_requires_secure_cookie(monkeypatch):
         create_app("sqlite:///:memory:")
 
 
+def test_production_forbids_legacy_unauthenticated_access(monkeypatch):
+    monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_DATABASE_URL", "sqlite:///tmp/agency.db")
+    monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
+    monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
+    monkeypatch.setenv("AGENCY_TURNSTILE_SECRET", "synthetic")
+    monkeypatch.setenv("AGENCY_ALLOW_LEGACY_UNAUTH", "true")
+
+    with pytest.raises(RuntimeError, match="AGENCY_ALLOW_LEGACY_UNAUTH"):
+        create_app("sqlite:///:memory:")
+
+
 def test_production_requires_turnstile_secret(monkeypatch):
     monkeypatch.setenv("AGENCY_ENV", "production")
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
