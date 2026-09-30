@@ -27,8 +27,8 @@ export default function HomePage() {
       <Team />
       <OpeningHours />
       <Faq />
-      <AgentWidget />
       <ContactSection />
+      <AgentWidget />
     </>
   );
 }

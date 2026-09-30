@@ -33,5 +33,5 @@ export function TurnstileField({ onToken }: { onToken: (token: string) => void }
       document.head.appendChild(script);
     }
   }, [onToken]);
-  return SITE_KEY ? <div ref={ref} aria-label="Cloudflare Turnstile" /> : null;
+  return SITE_KEY ? <div ref={ref} role="group" aria-label="Cloudflare Turnstile" /> : null;
 }

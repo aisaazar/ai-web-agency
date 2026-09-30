@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false, address: false, email: false },
 };
 
+const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -43,6 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="font/woff2"
           crossOrigin="anonymous"
         />
+        {turnstileEnabled ? (
+          <link rel="preconnect" href="https://challenges.cloudflare.com" crossOrigin="anonymous" />
+        ) : null}
       </head>
       <body className="flex min-h-screen flex-col">
         <SkipLink label={UI.skipToContent} />

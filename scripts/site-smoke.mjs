@@ -51,7 +51,7 @@ try {
     if (!response || !response.ok()) throw new Error(`broken internal link: ${href} -> ${response?.status()}`);
   }
 
-  await page.goto("http://127.0.0.1:4173/", { waitUntil: "networkidle" });
+  await page.goto("http://127.0.0.1:4173/", { waitUntil: "load" });
   const axe = await new AxeBuilder({ page }).analyze();
   const severe = axe.violations.filter((item) => item.impact === "critical" || item.impact === "serious");
   if (severe.length) throw new Error(`a11y violations: ${severe.map((item) => item.id).join(",")}`);
