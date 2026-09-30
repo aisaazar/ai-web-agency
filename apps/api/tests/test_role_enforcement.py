@@ -66,6 +66,22 @@ def test_reviewer_cannot_run_workflow_mutation(tmp_path):
     assert overview.status_code == 200
 
 
+def test_unauthenticated_control_plane_access_is_blocked_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("AGENCY_ALLOW_LEGACY_UNAUTH", raising=False)
+    app = create_app(f"sqlite:///{tmp_path / 'roles.db'}")
+
+    async def flow():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.post(
+                "/v1/deploys/domain",
+                json={"org_id": "00000000-0000-0000-0000-000000000001", "client_id": "00000000-0000-0000-0000-000000000002", "fqdn": "clinic.example"},
+            )
+
+    response = anyio.run(flow)
+    assert response.status_code == 401
+
+
 def test_logged_in_approver_identity_cannot_be_spoofed(tmp_path):
     app = create_app(f"sqlite:///{tmp_path / 'roles.db'}")
 

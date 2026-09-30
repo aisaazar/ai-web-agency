@@ -1,5 +1,6 @@
 """HTTP authentication dependencies for session-backed access."""
 
+import os
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request
@@ -56,7 +57,8 @@ def require_role_or_legacy(
     if user is None:
         user_count = session.scalar(select(func.count(User.id)))
         membership_count = session.scalar(select(func.count(Membership.id)))
-        if user_count == 0 and membership_count == 0:
+        legacy_enabled = os.getenv("AGENCY_ALLOW_LEGACY_UNAUTH", "").strip().lower() in {"1", "true", "yes"}
+        if legacy_enabled and user_count == 0 and membership_count == 0:
             return None
         raise HTTPException(status_code=401, detail="authentication required")
     membership = get_membership(session, user_id=user.id, org_id=org_id)
