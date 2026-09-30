@@ -38,3 +38,9 @@ Domain attachment requires an existing live deployment and normalizes a DNS host
 - Error reporting (Sentry or equivalent) is not wired: the API logs to stdout only. Add the SDK behind a provider seam before the first paying client, not before.
 - Per-site deploy tokens are a runbook rule, not a code rule: `VERCEL_TOKEN` is the platform token and must be scoped to the target project by hand. Rotate it whenever a client leaves.
 - `change_requests`, `provider_credentials`, `automation_events` and `knowledge_chunks` (docs/DOMAIN-OPS.md) are documented tables that the MVP does not yet create; maintenance work currently lives in `audit_log` and `deployments`.
+
+## Runtime preflight
+Before starting the production API, run: npm run validate:production:runtime.
+This checks production mode, HTTPS CORS origins, secure cookies, Turnstile configuration, and the selected deployment provider.
+For Vercel, it requires the project ID and platform token to exist in the deployment secret store; it never prints their values.
+Run this separately from the content gate: npm run validate:production.
