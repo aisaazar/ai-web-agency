@@ -12,12 +12,38 @@ from agency.domain.claims_policy import assert_claims_allowed
 from agency.domain.content_model import ContentModel
 from agency.providers.llm import LLMMessage, LLMRequest
 from agency.repositories import ArtifactRepository, PipelineRepository
+from agency.services.audit_service import record_audit
 from agency.services.llm_runtime import LLMRuntimeError, complete_with_logging
 from agency.services.pipeline_service import transition
 
 
 class AIContentGenerationError(ValueError):
     pass
+
+
+# A FAILED run is retryable: the failed attempt never persisted a content artifact, so
+# re-running the same step is the only recovery path (ALLOWED_TRANSITIONS["FAILED"]).
+CONTENT_READY_STATES = frozenset({"RESEARCH_APPROVED", "FAILED"})
+
+
+def _mark_failed(session: Session, *, pipeline, org_id, client_id, reason: str) -> None:
+    """Move the run to the recoverable FAILED state and make the reason auditable.
+
+    Callers raise right after this, and the HTTP layer rolls back on a raised error, so
+    the endpoint that owns the transaction is responsible for committing this record.
+    """
+    from_state = pipeline.state
+    pipeline.state = transition(from_state, "FAILED").to_state
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action="pipeline.content_generation_failed",
+        entity_type="pipeline_run",
+        entity_id=str(pipeline.id),
+        before={"state": from_state},
+        after={"state": "FAILED", "client_id": str(client_id), "reason": reason[:500]},
+    )
 
 
 def _strings(value: object) -> list[str]:
@@ -79,7 +105,7 @@ def generate_content_with_llm(
         raise AIContentGenerationError("client not found")
 
     pipeline = PipelineRepository(session, org_id).latest_for_client(client.id)
-    if pipeline is None or pipeline.state != "RESEARCH_APPROVED":
+    if pipeline is None or pipeline.state not in CONTENT_READY_STATES:
         raise AIContentGenerationError("client is not ready for content generation")
 
     facts = list(session.scalars(select(ClientFact).where(
@@ -148,13 +174,19 @@ def generate_content_with_llm(
             last_error = "LLM did not return valid JSON"
             if attempt < max_retries:
                 continue
-            pipeline.state = "FAILED"
+            _mark_failed(
+                session, pipeline=pipeline, org_id=org_id,
+                client_id=client.id, reason=last_error,
+            )
             raise AIContentGenerationError(last_error) from exc
         except (LLMRuntimeError, ValueError) as exc:
             last_error = str(exc)
             if attempt < max_retries:
                 continue
-            pipeline.state = "FAILED"
+            _mark_failed(
+                session, pipeline=pipeline, org_id=org_id,
+                client_id=client.id, reason=last_error,
+            )
             raise AIContentGenerationError(last_error) from exc
 
         artifact = Artifact(

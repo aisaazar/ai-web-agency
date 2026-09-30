@@ -63,6 +63,11 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
                 "state": "CONTENT_COMPLETE",
             }
         except (ContentGenerationError, AIContentGenerationError) as exc:
+            # The service already recorded the recoverable FAILED state, the audit entry,
+            # and the cost of the LLM calls that really happened. get_db rolls back on a
+            # raised HTTPException, so persist that diagnostic transaction first: without
+            # it failures are invisible and paid LLM spend stops counting towards budget.
+            session.commit()
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @router.post("/approve", status_code=200)

@@ -37,6 +37,11 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     "PUBLISHING": frozenset({"LIVE", "FAILED"}),
     "LIVE": frozenset({"MAINTENANCE", "PUBLISHING"}),
     "MAINTENANCE": frozenset({"BUILDING", "PUBLISHING"}),
+    # FAILED must stay recoverable: a terminal FAILED would permanently wedge a client,
+    # because no step could be re-run. Recovery returns to the generation steps, exactly
+    # like BUILD_FAILED may retry BUILDING. The service layer stays the authority on which
+    # preconditions each step really needs.
+    "FAILED": frozenset({"CONTENT_GENERATING", "DESIGNING"}),
 }
 
 APPROVAL_CONTRACT: dict[str, tuple[str, str]] = {
