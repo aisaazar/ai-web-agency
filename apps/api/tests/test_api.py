@@ -5,6 +5,13 @@ import pytest
 from agency.api import create_app
 
 
+def test_database_url_environment_is_used(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'configured.db'}"
+    monkeypatch.setenv("AGENCY_DATABASE_URL", database_url)
+    create_app()
+    assert (tmp_path / "configured.db").exists()
+
+
 def test_health_endpoint():
     app = create_app("sqlite:///:memory:")
 

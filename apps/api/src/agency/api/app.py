@@ -25,7 +25,10 @@ from agency.services.csrf_service import CSRF_COOKIE, CSRF_HEADER, valid_csrf_to
 from agency.services.rate_limit_service import RateLimitError, enforce
 
 
-def create_app(database_url: str = "sqlite:///agency.db") -> FastAPI:
+def create_app(database_url: str | None = None) -> FastAPI:
+    database_url = database_url or os.getenv("AGENCY_DATABASE_URL", "sqlite:///agency.db").strip()
+    if not database_url:
+        raise RuntimeError("database URL must not be empty")
     session_factory: sessionmaker = create_session_factory(database_url)
     create_all(database_url)
     app = FastAPI(title="AI Web Agency API", version="0.1.0")
