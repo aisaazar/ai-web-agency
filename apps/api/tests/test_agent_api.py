@@ -1,6 +1,7 @@
 import anyio
 import httpx
 
+import agency.api.agent as agent_api
 from agency.api import create_app
 from agency.db.conversation_models import ConversationMessage
 from agency.db.models import Approval, Artifact, Client, Org
@@ -175,3 +176,54 @@ def test_agent_redacts_pii_in_transcript(tmp_path):
     assert "+49 911 123456" not in user_message
     assert "[E-MAIL REDACTED]" in user_message
     assert "[PHONE REDACTED]" in user_message
+
+
+def test_agent_rate_limits_conversation_starts_and_messages(tmp_path, monkeypatch):
+    from agency.services import rate_limit_service
+
+    rate_limit_service.reset()
+    monkeypatch.setattr(agent_api, "_START_LIMIT", 1)
+    monkeypatch.setattr(agent_api, "_START_WINDOW_SECONDS", 60)
+    database_url = f"sqlite:///{tmp_path / 'agent-rate.db'}"
+    _, client = _seed(database_url)
+    app = create_app(database_url)
+
+    first = _request(
+        app,
+        "POST",
+        f"/v1/agent/clients/{client.id}/conversations",
+        json={"consent": True},
+    )
+    blocked_start = _request(
+        app,
+        "POST",
+        f"/v1/agent/clients/{client.id}/conversations",
+        json={"consent": True},
+    )
+    assert first.status_code == 201
+    assert blocked_start.status_code == 429
+    assert blocked_start.headers["retry-after"] == "60"
+
+    rate_limit_service.reset()
+    monkeypatch.setattr(agent_api, "_MESSAGE_LIMIT", 1)
+    monkeypatch.setattr(agent_api, "_MESSAGE_WINDOW_SECONDS", 60)
+    conversation_id = first.json()["conversation_id"]
+    visitor_token = first.json()["visitor_token"]
+    allowed = _request(
+        app,
+        "POST",
+        f"/v1/agent/conversations/{conversation_id}/messages",
+        headers={"X-Agent-Visitor-Token": visitor_token},
+        json={"message": "Wie vereinbare ich einen Termin?"},
+    )
+    blocked_message = _request(
+        app,
+        "POST",
+        f"/v1/agent/conversations/{conversation_id}/messages",
+        headers={"X-Agent-Visitor-Token": visitor_token},
+        json={"message": "Wie vereinbare ich einen Termin?"},
+    )
+    assert allowed.status_code == 200
+    assert blocked_message.status_code == 429
+    assert blocked_message.headers["retry-after"] == "60"
+    rate_limit_service.reset()

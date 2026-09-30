@@ -17,9 +17,29 @@ from agency.api.agent_schemas import (
 from agency.api.dependencies import get_db
 from agency.db.conversation_models import Conversation, ConversationMessage
 from agency.services.agent_service import AgentError, CONSENT_NOTICE, reply_to_conversation, start_conversation
+from agency.services.rate_limit_service import RateLimitError, enforce
 
 VISITOR_COOKIE = "agency_agent_visitor"
 VISITOR_HEADER = "X-Agent-Visitor-Token"
+_START_LIMIT = 10
+_START_WINDOW_SECONDS = 15 * 60
+_MESSAGE_LIMIT = 30
+_MESSAGE_WINDOW_SECONDS = 5 * 60
+
+
+def _client_host(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+def _enforce_agent_limit(*, key: str, limit: int, window_seconds: int) -> None:
+    try:
+        enforce(key, limit=limit, window_seconds=window_seconds)
+    except RateLimitError as exc:
+        raise HTTPException(
+            status_code=429,
+            detail="agent rate limit exceeded",
+            headers={"Retry-After": str(window_seconds)},
+        ) from exc
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
@@ -45,9 +65,15 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     def create_conversation(
         client_id: UUID,
         payload: ConversationCreateIn,
+        request: Request,
         response: Response,
         session: Session = Depends(db),
     ):
+        _enforce_agent_limit(
+            key=f"agent:start:{_client_host(request)}:{client_id}",
+            limit=_START_LIMIT,
+            window_seconds=_START_WINDOW_SECONDS,
+        )
         try:
             conversation, notice = start_conversation(
                 session,
@@ -74,6 +100,11 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
         visitor_ref = request.headers.get(VISITOR_HEADER) or request.cookies.get(VISITOR_COOKIE)
         if not visitor_ref:
             raise HTTPException(status_code=401, detail="agent visitor session required")
+        _enforce_agent_limit(
+            key=f"agent:message:{_client_host(request)}:{visitor_ref}",
+            limit=_MESSAGE_LIMIT,
+            window_seconds=_MESSAGE_WINDOW_SECONDS,
+        )
         try:
             conversation, answer, escalated, contact = reply_to_conversation(
                 session,
