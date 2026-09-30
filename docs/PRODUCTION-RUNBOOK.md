@@ -35,8 +35,9 @@ Do not publish until the exact build hash has passed the build gate and the huma
 The dashboard/API deployment actions are `/v1/deploys/preview`, `/v1/deploys/publish`, `/v1/deploys/rollback`, `/v1/deploys/domain`, and `/v1/deploys/logs`.
 Domain attachment requires an existing live deployment and normalizes a DNS hostname before calling the provider. Deployment logs are client-scoped and cannot be read across client boundaries.
 
-## Deferrals (recorded, not forgotten)
-- Error reporting (Sentry or equivalent) is not wired: the API logs to stdout only. Add the SDK behind a provider seam before the first paying client, not before.
+## Production hardening
+- Unhandled API exceptions emit a structured, secret-safe error event with a request ID; clients receive the same request ID for support/debug correlation.
+- The built-in reporter writes through the normal application logger and has no paid-service dependency. An external provider can be added later behind the same seam.
 - Per-site deploy tokens are a runbook rule, not a code rule: `VERCEL_TOKEN` is the platform token and must be scoped to the target project by hand. Rotate it whenever a client leaves.
 - `change_requests`, `provider_credentials`, `automation_events` and `knowledge_chunks` (docs/DOMAIN-OPS.md) are documented tables that the MVP does not yet create; maintenance work currently lives in `audit_log` and `deployments`.
 

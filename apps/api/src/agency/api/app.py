@@ -1,11 +1,14 @@
 """FastAPI application factory for the platform API."""
 
 import os
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import sessionmaker
+
+from agency.services.error_reporting import report_exception
 
 from agency.api.agent import build_router as build_agent_router
 from agency.api.approvals import build_router as build_approvals_router
@@ -53,6 +56,29 @@ def create_app(database_url: str | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["*", CSRF_HEADER],
     )
+
+    @app.middleware("http")
+    async def request_context(request: Request, call_next):
+        request_id = str(uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception(request: Request, exc: Exception):
+        request_id = getattr(request.state, "request_id", str(uuid4()))
+        report_exception(
+            exc,
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "internal server error", "request_id": request_id},
+            headers={"X-Request-ID": request_id, "Cache-Control": "no-store"},
+        )
 
     @app.middleware("http")
     async def public_rate_limit(request: Request, call_next):
