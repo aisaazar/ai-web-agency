@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from agency.db.models import Approval, Artifact
 from agency.repositories import ApprovalRepository, PipelineRepository
+from agency.services.artifact_binding import belongs_to_client
 from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 
@@ -23,6 +24,8 @@ def approve_content(session: Session, *, org_id, client_id, artifact_id, approve
     ))
     if pipeline is None or pipeline.state != "CONTENT_COMPLETE" or artifact is None:
         raise ContentApprovalError("content is not ready for approval")
+    if not belongs_to_client(session, org_id=org_id, artifact=artifact, client_id=client_id):
+        raise ContentApprovalError("content artifact does not belong to client")
     ApprovalRepository(session, org_id).add(Approval(
         org_id=org_id,
         artifact_id=artifact.id,

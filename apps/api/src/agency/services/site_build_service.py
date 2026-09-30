@@ -16,6 +16,7 @@ from agency.db.models import Artifact, BuildValidation, Site, SiteVersion
 from agency.domain.claims_policy import assert_claims_allowed
 from agency.domain.content_model import ContentModel
 from agency.repositories import PipelineRepository
+from agency.services.artifact_binding import belongs_to_client
 from agency.services.audit_service import record_audit
 from agency.services.build_gate import (
     REQUIRED_CHECKS,
@@ -149,6 +150,12 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     ))
     if pipeline is None or pipeline.state not in BUILDABLE_STATES or content is None or design is None:
         raise SiteBuildError("site is not ready for build")
+    # Reject foreign artifacts before the pipeline leaves its state, before a site version is minted
+    # and before an expensive `npm run build:site` is executed with another client's content.
+    if not belongs_to_client(session, org_id=org_id, artifact=content, client_id=client_id):
+        raise SiteBuildError("content artifact does not belong to client")
+    if not belongs_to_client(session, org_id=org_id, artifact=design, client_id=client_id):
+        raise SiteBuildError("design artifact does not belong to client")
 
     pipeline.state = transition(pipeline.state, "BUILDING").to_state
     site = session.scalar(select(Site).where(Site.org_id == org_id, Site.client_id == client_id))

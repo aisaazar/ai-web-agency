@@ -23,6 +23,7 @@ export default async function LeadsPage({ searchParams }: Props) {
     {query.result ? <p className="success">Lead updated: {query.result.replace("lead-", "")}</p> : null}
     <section className="card"><table><thead><tr><th>Lead</th><th>Email</th><th>Client</th><th>Status</th><th>Received</th><th>Update</th></tr></thead><tbody>
       {rows.map((lead) => <tr key={lead.id}><td><strong>{lead.name}</strong></td><td>{lead.email}</td><td>{lead.client}</td><td><span className="badge">{lead.status}</span></td><td>{lead.createdAt}</td><td>{lead.status === "spam" ? <span className="muted">Blocked</span> : <form className="statusForm" action={`/api/leads/${lead.id}/status`} method="post"><select name="status" defaultValue={lead.status}>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><button className="button" type="submit">Save</button></form>}</td></tr>)}
+      {rows.length === 0 ? <tr><td colSpan={6} className="muted">No leads yet. Site contact forms post here once a client site is live.</td></tr> : null}
     </tbody></table></section>
   </>;
 }

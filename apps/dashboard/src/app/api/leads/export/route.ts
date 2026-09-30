@@ -19,13 +19,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const upstream = await fetch(
-    `${API_BASE_URL}/v1/leads/export.csv?org_id=${encodeURIComponent(ORG_ID)}`,
-    {
-      cache: "no-store",
-      headers: { Cookie: `agency_session=${session}` },
-    },
-  );
+  let upstream: Response;
+  try {
+    upstream = await fetch(
+      `${API_BASE_URL}/v1/leads/export.csv?org_id=${encodeURIComponent(ORG_ID)}`,
+      {
+        cache: "no-store",
+        headers: { Cookie: `agency_session=${session}` },
+      },
+    );
+  } catch {
+    const target = new URL("/leads", request.url);
+    target.searchParams.set("error", "Agency API is currently unavailable");
+    return NextResponse.redirect(target, 303);
+  }
 
   if (upstream.status === 401 || upstream.status === 403) {
     return NextResponse.redirect(new URL("/login", request.url), 303);

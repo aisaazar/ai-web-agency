@@ -11,6 +11,7 @@ from agency.api.dependencies import get_db
 from agency.db.models import Approval, Artifact
 from agency.repositories import ApprovalRepository
 from agency.repositories.pipeline_repository import PipelineRepository
+from agency.services.artifact_binding import belongs_to_client
 from agency.services.audit_service import record_audit
 from agency.services.pipeline_service import transition
 from agency.services.research_service import run_research
@@ -62,9 +63,14 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
             Artifact.id == payload.artifact_id,
             Artifact.org_id == payload.org_id,
             Artifact.artifact_type == "research_report",
+            Artifact.is_active.is_(True),
         ))
         if pipeline is None or pipeline.state != "RESEARCH_COMPLETE" or artifact is None:
             raise HTTPException(status_code=400, detail="research is not ready for approval")
+        if not belongs_to_client(
+            session, org_id=payload.org_id, artifact=artifact, client_id=payload.client_id
+        ):
+            raise HTTPException(status_code=400, detail="research artifact does not belong to client")
         ApprovalRepository(session, payload.org_id).add(Approval(
             org_id=payload.org_id,
             artifact_id=artifact.id,

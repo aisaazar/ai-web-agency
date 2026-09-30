@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from agency.db.models import Artifact
 from agency.repositories import ArtifactRepository, PipelineRepository
+from agency.services.artifact_binding import belongs_to_client
 from agency.services.pipeline_service import transition
 
 
@@ -22,6 +23,8 @@ def design_site(session: Session, *, org_id, client_id, content_artifact_id, pre
     ))
     if pipeline is None or pipeline.state != "CONTENT_APPROVED" or content is None:
         raise DesignError("content is not ready for design")
+    if not belongs_to_client(session, org_id=org_id, artifact=content, client_id=client_id):
+        raise DesignError("content artifact does not belong to client")
     if preset_id not in {"health"}:
         raise DesignError(f"unknown design preset: {preset_id}")
 

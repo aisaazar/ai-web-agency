@@ -26,19 +26,26 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ detail: "Invalid lead status" }, { status: 400 });
   }
 
-  const upstream = await fetch(
-    `${API_BASE_URL}/v1/leads/${encodeURIComponent(leadId)}/status?org_id=${encodeURIComponent(ORG_ID)}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `agency_session=${session}; agency_csrf=${csrf}`,
-        "X-CSRF-Token": csrf,
+  let upstream: Response;
+  try {
+    upstream = await fetch(
+      `${API_BASE_URL}/v1/leads/${encodeURIComponent(leadId)}/status?org_id=${encodeURIComponent(ORG_ID)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `agency_session=${session}; agency_csrf=${csrf}`,
+          "X-CSRF-Token": csrf,
+        },
+        body: JSON.stringify({ status, note, actor: "dashboard" }),
+        cache: "no-store",
       },
-      body: JSON.stringify({ status, note, actor: "dashboard" }),
-      cache: "no-store",
-    },
-  );
+    );
+  } catch {
+    const target = new URL("/leads", request.url);
+    target.searchParams.set("error", "Agency API is currently unavailable");
+    return NextResponse.redirect(target, 303);
+  }
 
   if (upstream.status === 401 || upstream.status === 403) {
     return NextResponse.redirect(new URL("/login", request.url), 303);

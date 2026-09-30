@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { fetchClientDetail, fetchDeploymentLogs } from "../../../../../lib/data";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function DeploymentLogsPage({ params }: Props) {
   const deployment = detail.deployments.find((item) => item.id === deployId);
 
   if (!deployment) {
-    throw new Error("Deployment not found for this client");
+    notFound();
   }
 
   return (

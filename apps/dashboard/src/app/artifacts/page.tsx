@@ -9,5 +9,6 @@ export default async function ArtifactsPage() {
   return <><div className="topbar"><div><div className="eyebrow">Traceability</div><h1>Artifacts & Approvals</h1></div></div>
     <section className="card"><table><thead><tr><th>Type</th><th>Revision</th><th>Status</th><th>Build hash</th></tr></thead><tbody>
       {rows.map(x=><tr key={x.id}><td>{x.type}</td><td>{x.revision}</td><td><span className="badge">{x.status}</span></td><td>{x.buildHash ?? "—"}</td></tr>)}
+      {rows.length === 0 ? <tr><td colSpan={4} className="muted">No artifacts yet. Approved facts are frozen into the first artifact revision.</td></tr> : null}
     </tbody></table></section></>;
 }
