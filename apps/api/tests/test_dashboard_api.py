@@ -2,6 +2,7 @@ import anyio
 import httpx
 
 from agency.api import create_app
+from agency.api.dashboard import build_router as build_dashboard_router
 from agency.db.models import Org
 from agency.db.session import create_session_factory
 
@@ -215,3 +216,38 @@ def test_dashboard_client_detail_is_tenant_scoped_and_traces_artifacts(tmp_path)
 
     blocked = anyio.run(request, f"/v1/dashboard/clients/{other_client.id}?org_id={org.id}")
     assert blocked.status_code == 404
+
+
+def test_legacy_dashboard_collection_route_is_removed(tmp_path):
+    """The untyped GET /v1/dashboard duplicate must not come back.
+
+    It had no consumer, no response model, and an "infer the org" fallback that the typed
+    /overview, /clients/{id} and /llm-cost routes deliberately do not have.
+    """
+    database_url = f"sqlite:///{tmp_path / 'dashboard-legacy.db'}"
+    app = create_app(database_url)
+    session = create_session_factory(database_url)()
+    org = Org(name="Legacy Agency", slug="legacy-agency")
+    session.add(org)
+    session.commit()
+    session.close()
+
+    async def request(path):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.get(path)
+
+    legacy = anyio.run(request, "/v1/dashboard")
+    assert legacy.status_code == 404
+
+    overview = anyio.run(request, f"/v1/dashboard/overview?org_id={org.id}")
+    assert overview.status_code == 200
+    assert overview.json()["org_id"] == str(org.id)
+
+    dashboard_paths = {route.path for route in build_dashboard_router(None).routes}
+    assert dashboard_paths == {
+        "/v1/dashboard/overview",
+        "/v1/dashboard/clients/{client_id}",
+        "/v1/dashboard/llm-cost",
+    }
+
