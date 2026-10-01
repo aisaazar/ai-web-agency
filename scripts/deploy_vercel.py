@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,9 @@ PRODUCTION_PREFLIGHT = REPO_ROOT / "scripts" / "validate-production-config.mjs"
 
 def production_preflight() -> None:
     """Refuse direct Vercel deployment unless production runtime config is valid."""
+    provider = os.getenv("AGENCY_DEPLOY_PROVIDER", "").strip().lower()
+    if provider != "vercel":
+        raise SystemExit("Direct Vercel deployment requires AGENCY_DEPLOY_PROVIDER=vercel")
     node = shutil.which("node")
     if node is None:
         raise SystemExit("Node.js is required for production runtime preflight")
