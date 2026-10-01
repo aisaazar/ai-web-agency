@@ -66,6 +66,7 @@ Domain attachment requires an existing live deployment and normalizes a DNS host
 ## Production provider posture
 Production must use real provider implementations: `AGENCY_RESEARCH_PROVIDER=tavily`, `AGENCY_LLM_PROVIDER=local`, `AGENCY_NOTIFY_PROVIDER=smtp`, and `AGENCY_DEPLOY_PROVIDER=vercel`. Mock/console/local-static providers are test or development choices and are rejected by the production preflight and API startup. The local LLM must use the bounded-context Agency model (for this PC: `agency-qwen3-4k`) rather than the upstream `qwen3:0.6b` default.
 Request-level provider overrides are also rejected in production: research, LLM content generation, and preview deployment must use the configured production provider even when a caller supplies a `provider` field explicitly.
+The Vercel deployment provider applies to customer static-site delivery. The Agency API runtime is a separate service and must run on infrastructure that can reach `AGENCY_LOCAL_LLM_BASE_URL`; a static Vercel site cannot reach Ollama running only on the developer PC.
 
 ## Runtime preflight
 Before starting the production API, run: npm run validate:production:runtime.

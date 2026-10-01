@@ -96,6 +96,10 @@ class LocalOpenAICompatibleProvider:
         if request.max_tokens < 1:
             raise LLMProviderError("max_tokens must be at least 1")
 
+        reasoning_effort = os.getenv("AGENCY_LOCAL_LLM_REASONING_EFFORT", "none").strip().lower()
+        if reasoning_effort not in {"high", "medium", "low", "max", "none"}:
+            raise LLMProviderError("AGENCY_LOCAL_LLM_REASONING_EFFORT must be high, medium, low, max, or none")
+
         payload = {
             "model": request.model or self.default_model,
             "messages": [
@@ -104,6 +108,7 @@ class LocalOpenAICompatibleProvider:
             ],
             "temperature": request.temperature,
             "max_tokens": request.max_tokens,
+            "reasoning_effort": reasoning_effort,
         }
         headers = {"Content-Type": "application/json"}
         if self.api_key:

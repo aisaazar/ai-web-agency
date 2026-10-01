@@ -43,6 +43,7 @@ def test_mock_llm_is_deterministic():
 def test_local_llm_maps_openai_compatible_response(monkeypatch):
     calls = []
     monkeypatch.setenv("AGENCY_LOCAL_LLM_MODEL", "qwen3:0.6b")
+    monkeypatch.setenv("AGENCY_LOCAL_LLM_REASONING_EFFORT", "none")
     def fake_urlopen(request, timeout):
         calls.append((request.full_url, json.loads(request.data), request.headers))
         return _Response({
@@ -58,6 +59,7 @@ def test_local_llm_maps_openai_compatible_response(monkeypatch):
     assert response.tokens_in == 7
     assert response.tokens_out == 4
     assert calls[0][0].endswith("/v1/chat/completions")
+    assert calls[0][1]["reasoning_effort"] == "none"
 
 
 def test_local_llm_rejects_malformed_response(monkeypatch):
@@ -73,3 +75,9 @@ def test_llm_registry_exposes_mock_and_local(monkeypatch):
     monkeypatch.setenv("AGENCY_LLM_PROVIDER", "mock")
     assert get_llm_provider().name == "mock"
     assert get_llm_provider("local").name == "local"
+
+
+def test_local_llm_rejects_invalid_reasoning_effort(monkeypatch):
+    monkeypatch.setenv("AGENCY_LOCAL_LLM_REASONING_EFFORT", "invalid")
+    with pytest.raises(LLMProviderError, match="AGENCY_LOCAL_LLM_REASONING_EFFORT"):
+        LocalOpenAICompatibleProvider().complete(_request())
