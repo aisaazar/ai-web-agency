@@ -40,7 +40,8 @@
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
     "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard",
-    "pilot:preflight": "node scripts/pilot-preflight.mjs"
+    "pilot:preflight": "node scripts/pilot-preflight.mjs",
+    "pilot:prepare-content": "node scripts/prepare-pilot-content.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -31,6 +31,7 @@ __pycache__/
 # Local DB / build/test output
 agency.db
 *.db
+sites/_template-base/content.real-*.json
 local.sqlite*
 dist/
 coverage/
