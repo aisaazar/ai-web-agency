@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -25,6 +26,8 @@ class VercelDeploymentProvider(DeploymentProvider):
     timeout_seconds: float = 45.0
     max_files: int = 200
     max_bundle_bytes: int = 5_000_000
+    ready_timeout_seconds: float = 120.0
+    ready_poll_seconds: float = 2.0
 
     def _token(self) -> str:
         token = os.getenv("VERCEL_TOKEN")
@@ -71,6 +74,26 @@ class VercelDeploymentProvider(DeploymentProvider):
         if "error" in data:
             raise VercelDeploymentError(str(data["error"]))
         return data
+
+    def _wait_until_ready(self, deployment_id: str) -> dict:
+        """Wait for Vercel to finish the staged deployment before exposing it to publish."""
+        deadline = time.monotonic() + self.ready_timeout_seconds
+        encoded = quote(deployment_id, safe="")
+        while True:
+            data = self._request("GET", f"/v13/deployments/{encoded}")
+            state = str(data.get("readyState") or data.get("state") or "").upper()
+            if state == "READY":
+                return data
+            if state in {"ERROR", "CANCELED", "DELETED"}:
+                raise VercelDeploymentError(
+                    f"Vercel deployment {deployment_id} ended in {state.lower()} state"
+                )
+            if time.monotonic() >= deadline:
+                raise VercelDeploymentError(
+                    f"Vercel deployment {deployment_id} did not become ready within "
+                    f"{self.ready_timeout_seconds:g}s"
+                )
+            time.sleep(self.ready_poll_seconds)
 
     @staticmethod
     def _safe_files(bundle: BuildBundle) -> list[tuple[str, Path]]:
@@ -131,6 +154,7 @@ class VercelDeploymentProvider(DeploymentProvider):
             raise VercelDeploymentError("Vercel deployment response has no id")
         if not isinstance(deployment_url, str) or not deployment_url:
             raise VercelDeploymentError("Vercel deployment response has no url")
+        self._wait_until_ready(deployment_id)
         return DeployResult(
             self.name,
             deployment_id,

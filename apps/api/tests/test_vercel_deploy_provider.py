@@ -37,6 +37,12 @@ def test_vercel_preview_uploads_immutable_bundle(monkeypatch, tmp_path):
     calls = []
 
     def fake_urlopen(request, timeout):
+        if request.get_method() == "GET":
+            return _Response({
+                "id": "dpl_123",
+                "url": "site-preview.vercel.app",
+                "readyState": "READY",
+            })
         calls.append((request, json.loads(request.data)))
         return _Response({"id": "dpl_123", "url": "site-preview.vercel.app"})
 
@@ -51,6 +57,43 @@ def test_vercel_preview_uploads_immutable_bundle(monkeypatch, tmp_path):
     assert payload["meta"]["ai_web_agency_build_hash"] == "a" * 64
     by_file = {item["file"]: item for item in payload["files"]}
     assert base64.b64decode(by_file["index.html"]["data"]).decode() == "<h1>hello</h1>"
+
+
+def test_vercel_preview_waits_for_ready(monkeypatch, tmp_path):
+    _configure(monkeypatch)
+    source = tmp_path / "bundle"
+    source.mkdir()
+    (source / "index.html").write_text("hello", encoding="utf-8")
+    states = iter(["BUILDING", "READY"])
+
+    def fake_urlopen(request, timeout):
+        if request.get_method() == "POST":
+            return _Response({"id": "dpl_wait", "url": "wait.vercel.app"})
+        return _Response({"id": "dpl_wait", "readyState": next(states)})
+
+    monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
+    result = VercelDeploymentProvider(ready_poll_seconds=0).create_preview(
+        BuildBundle("e" * 64, source)
+    )
+    assert result.status == "preview_ready"
+
+
+def test_vercel_preview_rejects_failed_deployment(monkeypatch, tmp_path):
+    _configure(monkeypatch)
+    source = tmp_path / "bundle"
+    source.mkdir()
+    (source / "index.html").write_text("hello", encoding="utf-8")
+
+    def fake_urlopen(request, timeout):
+        if request.get_method() == "POST":
+            return _Response({"id": "dpl_failed", "url": "failed.vercel.app"})
+        return _Response({"id": "dpl_failed", "readyState": "ERROR"})
+
+    monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
+    with pytest.raises(VercelDeploymentError, match="ended in error state"):
+        VercelDeploymentProvider(ready_poll_seconds=0).create_preview(
+            BuildBundle("f" * 64, source)
+        )
 
 
 def test_vercel_promote_uses_preview_url(monkeypatch):
