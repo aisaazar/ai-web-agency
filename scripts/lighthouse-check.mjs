@@ -65,9 +65,17 @@ const server = createServer(async (req, res) => {
 await mkdir(artifactsDir, { recursive: true });
 await new Promise((resolve) => server.listen(4174, "127.0.0.1", resolve));
 
+const preset = (process.env.LIGHTHOUSE_PRESET || "desktop").trim().toLowerCase();
+if (!["desktop", "mobile"].includes(preset)) {
+  console.error("LIGHTHOUSE_PRESET must be desktop or mobile");
+  server.close();
+  process.exit(1);
+}
+
 const args = [
   "lighthouse", "http://127.0.0.1:4174",
   "--output=json", "--output-path=" + reportPath,
+  "--preset=" + preset,
   "--chrome-flags=--headless=new",
   "--only-categories=performance,accessibility,seo",
 ];
@@ -97,7 +105,8 @@ const scores = {
   seo: Math.round((report.categories.seo?.score ?? 0) * 100),
 };
 console.log(
-  "lighthouse gate: performance=" + scores.performance +
+  "lighthouse gate: preset=" + preset +
+  ", performance=" + scores.performance +
   ", accessibility=" + scores.accessibility +
   ", seo=" + scores.seo,
 );

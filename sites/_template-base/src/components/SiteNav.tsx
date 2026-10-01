@@ -17,6 +17,7 @@ export function SiteNav({ items, ariaLabel }: { items: readonly NavItem[]; ariaL
           <li key={item.href}>
             <Link
               href={item.href}
+              prefetch={false}
               className="inline-flex min-h-6 items-center rounded-sm py-1 text-ink hover:text-brand-700 hover:underline"
             >
               {item.label}

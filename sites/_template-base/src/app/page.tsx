@@ -12,6 +12,9 @@ import { Team } from "@/components/Team";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata("/");
+const agentEnabled = Boolean(
+  process.env.NEXT_PUBLIC_AGENCY_AGENT_API_URL && process.env.NEXT_PUBLIC_AGENCY_CLIENT_ID,
+);
 
 export default function HomePage() {
   return (
@@ -28,7 +31,7 @@ export default function HomePage() {
       <OpeningHours />
       <Faq />
       <ContactSection />
-      <AgentWidget />
+      {agentEnabled ? <AgentWidget /> : null}
     </>
   );
 }
