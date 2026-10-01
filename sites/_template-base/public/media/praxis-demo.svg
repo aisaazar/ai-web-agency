@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8F4F2"/><stop offset="1" stop-color="#D4E8FF"/></linearGradient></defs>
+<rect width="1200" height="750" fill="url(#g)"/>
+<rect x="70" y="80" width="1060" height="590" rx="36" fill="#fff" opacity=".94"/>
+<rect x="125" y="140" width="430" height="300" rx="24" fill="#EEF4F5"/>
+<circle cx="340" cy="285" r="72" fill="#C6DDF7"/>
+<path d="M250 455c54-105 246-105 300 0" fill="none" stroke="#1E3A8A" stroke-width="30" stroke-linecap="round"/>
+<rect x="605" y="155" width="430" height="42" rx="21" fill="#DCE8F0"/>
+<rect x="605" y="220" width="350" height="30" rx="15" fill="#E7EEF3"/>
+<rect x="605" y="275" width="300" height="30" rx="15" fill="#E7EEF3"/>
+<text x="605" y="390" font-family="Arial,sans-serif" font-size="48" font-weight="700" fill="#10233F">Praxis-Medien</text>
+<text x="605" y="445" font-family="Arial,sans-serif" font-size="26" fill="#4E6478">Demo-Asset - vor Produktion ersetzen</text>
+</svg>

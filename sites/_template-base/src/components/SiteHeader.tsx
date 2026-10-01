@@ -15,6 +15,7 @@ export const SECTION_ANCHORS = {
   contact: "kontakt",
   about: "ueber-uns",
   address: "adresse",
+  media: "medien",
 } as const;
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -25,6 +26,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: `/#${SECTION_ANCHORS.hours}`, label: "Sprechzeiten" },
   { href: `/#${SECTION_ANCHORS.address}`, label: "Adresse" },
   { href: `/#${SECTION_ANCHORS.contact}`, label: "Kontakt" },
+  { href: `/#${SECTION_ANCHORS.media}`, label: "Medien" },
 ];
 
 export function SiteHeader() {

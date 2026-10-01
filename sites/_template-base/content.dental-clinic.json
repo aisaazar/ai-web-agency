@@ -1,5 +1,5 @@
 {
-  "content_schema_version": "1.0.0",
+  "content_schema_version": "1.1.0",
   "meta": {
     "client_slug": "zahnbalance-nuernberg",
     "is_fixture": true,
@@ -182,6 +182,31 @@
         "error_summary": "Bitte prüfen Sie die markierten Felder."
       }
     }
+  },
+  "media": {
+    "heading": "Praxis in Bildern & Video",
+    "intro": [
+      "Fotos und kurze Videos geben Besucherinnen und Besuchern einen ersten visuellen Eindruck.",
+      "Die Demo-Assets sind Platzhalter und werden für einen echten Kunden durch freigegebene Medien ersetzt."
+    ],
+    "images": [
+      {
+        "id": "praxis-einblick",
+        "src": "/media/praxis-demo.svg",
+        "alt": "Abstrakte Illustration eines modernen Praxisraums",
+        "title": "Moderner Praxisraum",
+        "caption": "Demo-Foto — vor Veröffentlichung durch ein freigegebenes Kundenfoto ersetzen."
+      }
+    ],
+    "videos": [
+      {
+        "id": "praxis-video",
+        "src": "/media/praxis-demo.mp4",
+        "poster": "/media/praxis-demo.svg",
+        "title": "Kurzer Praxis-Eindruck",
+        "caption": "Demo-Video — zeigt die Medienfunktion des Templates mit lokaler, statischer Videodatei."
+      }
+    ]
   },
   "faq": {
     "heading": "Häufige Fragen",

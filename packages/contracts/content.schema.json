@@ -1,5 +1,5 @@
 {
-  "$comment": "Generated from apps/api/src/agency/domain/content_model.py - DO NOT EDIT. Content schema version: 1.0.0. Regenerate with: npm run contracts",
+  "$comment": "Generated from apps/api/src/agency/domain/content_model.py - DO NOT EDIT. Content schema version: 1.1.0. Regenerate with: npm run contracts",
   "$defs": {
     "Accessibility": {
       "additionalProperties": false,
@@ -1126,6 +1126,151 @@
       "title": "MapInfo",
       "type": "object"
     },
+    "MediaImage": {
+      "additionalProperties": false,
+      "properties": {
+        "alt": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Alt",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "src": {
+          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$",
+          "title": "Src",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "src",
+        "alt",
+        "title"
+      ],
+      "title": "MediaImage",
+      "type": "object"
+    },
+    "MediaSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "images": {
+          "items": {
+            "$ref": "#/$defs/MediaImage"
+          },
+          "title": "Images",
+          "type": "array"
+        },
+        "intro": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intro",
+          "type": "array"
+        },
+        "videos": {
+          "items": {
+            "$ref": "#/$defs/MediaVideo"
+          },
+          "title": "Videos",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "intro"
+      ],
+      "title": "MediaSection",
+      "type": "object"
+    },
+    "MediaVideo": {
+      "additionalProperties": false,
+      "properties": {
+        "caption": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "id": {
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "poster": {
+          "anyOf": [
+            {
+              "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Poster"
+        },
+        "src": {
+          "pattern": "^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$",
+          "title": "Src",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "src",
+        "title"
+      ],
+      "title": "MediaVideo",
+      "type": "object"
+    },
     "OpeningHours": {
       "additionalProperties": false,
       "properties": {
@@ -1806,6 +1951,17 @@
       "pattern": "^[a-z]{2}-[A-Z]{2}$",
       "title": "Locale",
       "type": "string"
+    },
+    "media": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MediaSection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "meta": {
       "$ref": "#/$defs/ContentMeta"

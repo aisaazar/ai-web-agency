@@ -242,6 +242,23 @@ export type Rights = [LegalSection, ...LegalSection[]];
 export type Name4 = string;
 export type Url2 = string;
 export type Locale = string;
+export type Heading5 = string;
+export type Alt = string;
+export type Caption = string | null;
+export type Id = string;
+export type Src = string;
+export type Title1 = string;
+export type Images = MediaImage[];
+/**
+ * @minItems 1
+ */
+export type Intro4 = [string, ...string[]];
+export type Caption1 = string | null;
+export type Id1 = string;
+export type Poster = string | null;
+export type Src1 = string;
+export type Title2 = string;
+export type Videos = MediaVideo[];
 /**
  * Client entity slug (docs/DOMAIN-MODEL.md `clients.slug`).
  */
@@ -263,12 +280,12 @@ export type Pages = [PageSeo, ...PageSeo[]];
 export type Description = string;
 export type Noindex = boolean;
 export type Path = "/" | "/leistungen" | "/impressum" | "/datenschutz";
-export type Title1 = string;
-export type Heading5 = string;
+export type Title3 = string;
+export type Heading6 = string;
 /**
  * @minItems 1
  */
-export type Intro4 = [string, ...string[]];
+export type Intro5 = [string, ...string[]];
 /**
  * @minItems 1
  */
@@ -288,13 +305,13 @@ export type Icon1 =
 /**
  * Anchor id and stable reference; never localised.
  */
-export type Id = string;
+export type Id2 = string;
 /**
  * @minItems 1
  */
 export type Paragraphs2 = [string, ...string[]];
 export type Summary = string;
-export type Title2 = string;
+export type Title4 = string;
 export type Note5 = string | null;
 /**
  * Default meta description, also used as the llms.txt summary.
@@ -312,11 +329,11 @@ export type ThemeColor = string;
  * Canonical origin of the site, e.g. https://praxis.example
  */
 export type Url3 = string;
-export type Heading6 = string;
+export type Heading7 = string;
 /**
  * @minItems 1
  */
-export type Intro5 = [string, ...string[]];
+export type Intro6 = [string, ...string[]];
 /**
  * @minItems 1
  */
@@ -326,7 +343,7 @@ export type Members = [TeamMember, ...TeamMember[]];
  */
 export type Bio = [string, ...string[]];
 export type FocusAreas = string[];
-export type Id1 = string;
+export type Id3 = string;
 /**
  * @minItems 1
  */
@@ -356,6 +373,7 @@ export interface ContentModel {
   hours: HoursSection;
   legal: Legal;
   locale: Locale;
+  media?: MediaSection | null;
   meta: ContentMeta;
   seo: Seo;
   services: ServicesSection;
@@ -558,6 +576,26 @@ export interface Authority {
   name: Name4;
   url: Url2;
 }
+export interface MediaSection {
+  heading: Heading5;
+  images?: Images;
+  intro: Intro4;
+  videos?: Videos;
+}
+export interface MediaImage {
+  alt: Alt;
+  caption?: Caption;
+  id: Id;
+  src: Src;
+  title: Title1;
+}
+export interface MediaVideo {
+  caption?: Caption1;
+  id: Id1;
+  poster?: Poster;
+  src: Src1;
+  title: Title2;
+}
 /**
  * Artifact-level metadata. Not rendered, except the fixture banner (see `is_fixture`).
  */
@@ -573,21 +611,21 @@ export interface PageSeo {
   description: Description;
   noindex?: Noindex;
   path: Path;
-  title: Title1;
+  title: Title3;
 }
 export interface ServicesSection {
-  heading: Heading5;
-  intro: Intro4;
+  heading: Heading6;
+  intro: Intro5;
   items: Items1;
   note?: Note5;
 }
 export interface Service {
   features?: Features;
   icon: Icon1;
-  id: Id;
+  id: Id2;
   paragraphs: Paragraphs2;
   summary: Summary;
-  title: Title2;
+  title: Title4;
 }
 export interface SiteIdentity {
   description: Description1;
@@ -599,14 +637,14 @@ export interface SiteIdentity {
   url: Url3;
 }
 export interface TeamSection {
-  heading: Heading6;
-  intro: Intro5;
+  heading: Heading7;
+  intro: Intro6;
   members: Members;
 }
 export interface TeamMember {
   bio: Bio;
   focus_areas?: FocusAreas;
-  id: Id1;
+  id: Id3;
   languages: Languages;
   name: Name6;
   photo_url?: PhotoUrl;

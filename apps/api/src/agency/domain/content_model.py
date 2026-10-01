@@ -29,7 +29,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-CONTENT_SCHEMA_VERSION = "1.0.0"
+CONTENT_SCHEMA_VERSION = "1.1.0"
 
 # --- primitive constraints ---------------------------------------------------------------------
 
@@ -240,6 +240,29 @@ class TeamSection(ContentBase):
     members: Annotated[list[TeamMember], Field(min_length=1)]
 
 
+class MediaImage(ContentBase):
+    id: Slug
+    src: SameOriginPath
+    alt: Line
+    title: ShortText
+    caption: Paragraph | None = None
+
+
+class MediaVideo(ContentBase):
+    id: Slug
+    src: SameOriginPath
+    poster: SameOriginPath | None = None
+    title: ShortText
+    caption: Paragraph | None = None
+
+
+class MediaSection(ContentBase):
+    heading: ShortText
+    intro: Annotated[list[Paragraph], Field(min_length=1)]
+    images: list[MediaImage] = Field(default_factory=list)
+    videos: list[MediaVideo] = Field(default_factory=list)
+
+
 class HoursSection(ContentBase):
     heading: ShortText
     intro: Annotated[list[Paragraph], Field(min_length=1)]
@@ -407,6 +430,7 @@ class ContentModel(ContentBase):
     contact: ContactSection
     faq: FaqSection
     legal: Legal
+    media: MediaSection | None = None
     seo: Seo
 
 
