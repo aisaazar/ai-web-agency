@@ -33,13 +33,13 @@ export function Hero() {
           loop
           playsInline
           poster={hero.background_image ?? undefined}
-          className="hero-motion absolute inset-0 z-0 h-full w-full object-cover"
+          className="hero-motion absolute inset-0 z-0 h-full w-full object-cover opacity-25 mix-blend-multiply"
         >
           <source src={hero.background_video} type="video/mp4" />
         </video>
       ) : null}
       {hasBackground ? (
-        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-gradient-to-r from-white/90 via-white/45 to-transparent" />
+        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-gradient-to-r from-white/88 via-white/30 to-black/10" />
       ) : null}
 
       <div className="relative z-10 max-w-3xl rounded-2xl bg-white/82 p-6 shadow-xl backdrop-blur-sm sm:p-8">
