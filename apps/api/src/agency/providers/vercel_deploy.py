@@ -61,6 +61,10 @@ class VercelDeploymentProvider(DeploymentProvider):
         except HTTPError as exc:
             detail = exc.read(1000).decode("utf-8", errors="replace")
             raise VercelDeploymentError(f"Vercel HTTP {exc.code}: {detail[:500]}") from exc
+        except TimeoutError as exc:
+            raise VercelDeploymentError(
+                f"Vercel request timed out after {self.timeout_seconds:g}s"
+            ) from exc
         except URLError as exc:
             raise VercelDeploymentError(f"Vercel request failed: {exc.reason}") from exc
         if not raw:

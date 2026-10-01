@@ -234,3 +234,29 @@ def test_vercel_rejects_oversized_bundle(monkeypatch, tmp_path):
     (source / "index.html").write_text("x" * 100, encoding="utf-8")
     with pytest.raises(VercelDeploymentError, match="exceeds 10 byte limit"):
         VercelDeploymentProvider(max_bundle_bytes=10).create_preview(BuildBundle("d" * 64, source))
+
+
+def test_vercel_request_timeout_is_wrapped(monkeypatch):
+    _configure(monkeypatch)
+
+    def fake_urlopen(request, timeout):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
+    with pytest.raises(VercelDeploymentError, match="timed out after 45s"):
+        VercelDeploymentProvider().logs("dpl_timeout")
+
+
+def test_vercel_rejects_invalid_json_response(monkeypatch):
+    _configure(monkeypatch)
+
+    class InvalidJsonResponse(_Response):
+        def __init__(self):
+            self.payload = b"not-json"
+
+    monkeypatch.setattr(
+        "agency.providers.vercel_deploy.urlopen",
+        lambda request, timeout: InvalidJsonResponse(),
+    )
+    with pytest.raises(VercelDeploymentError, match="invalid JSON"):
+        VercelDeploymentProvider().logs("dpl_bad_json")
