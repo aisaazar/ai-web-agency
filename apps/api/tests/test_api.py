@@ -72,8 +72,16 @@ def _set_production_provider_env(monkeypatch):
     monkeypatch.setenv("AGENCY_ALLOW_LEGACY_UNAUTH", "false")
     monkeypatch.setenv("AGENCY_RESEARCH_PROVIDER", "tavily")
     monkeypatch.setenv("AGENCY_LLM_PROVIDER", "local")
+    monkeypatch.setenv("AGENCY_LOCAL_LLM_BASE_URL", "http://127.0.0.1:11434/v1")
+    monkeypatch.setenv("AGENCY_LOCAL_LLM_MODEL", "agency-qwen3-4k")
     monkeypatch.setenv("AGENCY_NOTIFY_PROVIDER", "smtp")
+    monkeypatch.setenv("AGENCY_SMTP_HOST", "smtp.example")
+    monkeypatch.setenv("AGENCY_SMTP_PORT", "587")
+    monkeypatch.setenv("AGENCY_SMTP_FROM", "agency@example.com")
+    monkeypatch.setenv("AGENCY_LEAD_NOTIFICATION_TO", "leads@example.com")
     monkeypatch.setenv("AGENCY_DEPLOY_PROVIDER", "vercel")
+    monkeypatch.setenv("VERCEL_PROJECT_ID", "prj_synthetic")
+    monkeypatch.setenv("VERCEL_TOKEN", "synthetic")
 
 
 def test_production_requires_real_provider_posture(monkeypatch):

@@ -60,6 +60,12 @@ def create_app(database_url: str | None = None) -> FastAPI:
         notify_provider = os.getenv("AGENCY_NOTIFY_PROVIDER", "").strip().lower()
         if notify_provider != "smtp":
             raise RuntimeError("production requires AGENCY_NOTIFY_PROVIDER=smtp")
+        if not os.getenv("AGENCY_SMTP_HOST", "").strip():
+            raise RuntimeError("production requires AGENCY_SMTP_HOST")
+        if not os.getenv("AGENCY_SMTP_FROM", "").strip():
+            raise RuntimeError("production requires AGENCY_SMTP_FROM")
+        if not os.getenv("AGENCY_LEAD_NOTIFICATION_TO", "").strip():
+            raise RuntimeError("production requires AGENCY_LEAD_NOTIFICATION_TO")
         deploy_provider = os.getenv("AGENCY_DEPLOY_PROVIDER", "").strip().lower()
         if deploy_provider != "vercel":
             raise RuntimeError("production requires AGENCY_DEPLOY_PROVIDER=vercel")

@@ -42,7 +42,13 @@ test("production preflight accepts structurally valid synthetic Vercel config", 
     VERCEL_TOKEN: "synthetic",
     AGENCY_RESEARCH_PROVIDER: "tavily",
     AGENCY_LLM_PROVIDER: "local",
+    AGENCY_LOCAL_LLM_BASE_URL: "http://127.0.0.1:11434/v1",
+    AGENCY_LOCAL_LLM_MODEL: "agency-qwen3-4k",
     AGENCY_NOTIFY_PROVIDER: "smtp",
+    AGENCY_SMTP_HOST: "smtp.example",
+    AGENCY_SMTP_PORT: "587",
+    AGENCY_SMTP_FROM: "agency@example.com",
+    AGENCY_LEAD_NOTIFICATION_TO: "leads@example.com",
   });
   assert.equal(code, 0);
 });
@@ -99,9 +105,61 @@ test("production preflight accepts real pilot provider posture", () => {
     VERCEL_TOKEN: "synthetic",
     AGENCY_RESEARCH_PROVIDER: "tavily",
     AGENCY_LLM_PROVIDER: "local",
+    AGENCY_LOCAL_LLM_BASE_URL: "http://127.0.0.1:11434/v1",
+    AGENCY_LOCAL_LLM_MODEL: "agency-qwen3-4k",
     AGENCY_NOTIFY_PROVIDER: "smtp",
+    AGENCY_SMTP_HOST: "smtp.example",
+    AGENCY_SMTP_PORT: "587",
+    AGENCY_SMTP_FROM: "agency@example.com",
+    AGENCY_LEAD_NOTIFICATION_TO: "leads@example.com",
   });
   assert.equal(code, 0);
+});
+
+test("production preflight rejects unbounded default local model", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "postgresql://db.example/agency",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "vercel",
+    VERCEL_PROJECT_ID: "prj_synthetic",
+    VERCEL_TOKEN: "synthetic",
+    AGENCY_RESEARCH_PROVIDER: "tavily",
+    AGENCY_LLM_PROVIDER: "local",
+    AGENCY_LOCAL_LLM_BASE_URL: "http://127.0.0.1:11434/v1",
+    AGENCY_LOCAL_LLM_MODEL: "qwen3:0.6b",
+    AGENCY_NOTIFY_PROVIDER: "smtp",
+    AGENCY_SMTP_HOST: "smtp.example",
+    AGENCY_SMTP_PORT: "587",
+    AGENCY_SMTP_FROM: "agency@example.com",
+    AGENCY_LEAD_NOTIFICATION_TO: "leads@example.com",
+  });
+  assert.equal(code, 1);
+});
+
+test("production preflight rejects missing SMTP lead destination", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "postgresql://db.example/agency",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "vercel",
+    VERCEL_PROJECT_ID: "prj_synthetic",
+    VERCEL_TOKEN: "synthetic",
+    AGENCY_RESEARCH_PROVIDER: "tavily",
+    AGENCY_LLM_PROVIDER: "local",
+    AGENCY_LOCAL_LLM_BASE_URL: "http://127.0.0.1:11434/v1",
+    AGENCY_LOCAL_LLM_MODEL: "agency-qwen3-4k",
+    AGENCY_NOTIFY_PROVIDER: "smtp",
+    AGENCY_SMTP_HOST: "smtp.example",
+    AGENCY_SMTP_PORT: "587",
+    AGENCY_SMTP_FROM: "agency@example.com",
+    AGENCY_LEAD_NOTIFICATION_TO: "",
+  });
+  assert.equal(code, 1);
 });
 
 test("production preflight rejects insecure origins", () => {

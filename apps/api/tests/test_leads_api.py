@@ -203,6 +203,7 @@ def test_new_lead_notification_runs_after_commit(tmp_path, monkeypatch):
 
     provider = FakeNotifyProvider()
     import agency.services.lead_service as lead_service
+    monkeypatch.setenv("AGENCY_LEAD_NOTIFICATION_TO", "agency@example.test")
     monkeypatch.setattr(lead_service, "get_notify_provider", lambda: provider)
 
     response = _post(app, {
@@ -252,3 +253,25 @@ def test_lead_list_and_csv_export_are_org_scoped(tmp_path):
     other_list = _request(app, "GET", f"/v1/leads?org_id={other_org.id}")
     assert other_list.status_code == 200
     assert other_list.json() == []
+
+
+def test_lead_notification_requires_recipient_configuration(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    site = _seed(database_url)
+    app = create_app(database_url)
+    monkeypatch.delenv("AGENCY_LEAD_NOTIFICATION_TO", raising=False)
+
+    async def request():
+        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.post("/v1/leads", json={
+                "site_id": str(site.id),
+                "name": "Jane Doe",
+                "email": "jane@example.com",
+                "message": "Please call me.",
+                "consent": True,
+            })
+
+    response = anyio.run(request)
+    # Missing notification configuration is an operational error; production startup separately fails closed.
+    assert response.status_code == 500

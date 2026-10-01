@@ -27,7 +27,9 @@ def _queue_lead_notification(
     lead: LeadSubmission,
     provider: NotifyProvider,
 ) -> None:
-    recipient = os.getenv("AGENCY_LEAD_NOTIFICATION_TO", "agency@example.invalid")
+    recipient = os.getenv("AGENCY_LEAD_NOTIFICATION_TO", "").strip()
+    if not recipient:
+        raise RuntimeError("AGENCY_LEAD_NOTIFICATION_TO is required for lead notifications")
     notification = Notification(
         to=recipient,
         subject=f"New lead for client {lead.client_id}",

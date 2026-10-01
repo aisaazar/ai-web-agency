@@ -7,6 +7,20 @@ Set these values only in the deployment secret store:
 - AGENCY_COOKIE_SECURE=true
 - AGENCY_TURNSTILE_SECRET=<server secret>
 - AGENCY_DATABASE_URL=<production database URL>
+- AGENCY_RESEARCH_PROVIDER=tavily
+- AGENCY_LLM_PROVIDER=local
+- AGENCY_LOCAL_LLM_BASE_URL=http://<llm-host>:11434/v1
+- AGENCY_LOCAL_LLM_MODEL=agency-qwen3-4k
+- AGENCY_NOTIFY_PROVIDER=smtp
+- AGENCY_SMTP_HOST=<smtp host>
+- AGENCY_SMTP_PORT=587
+- AGENCY_SMTP_USERNAME=<optional smtp username>
+- AGENCY_SMTP_PASSWORD=<optional smtp password>
+- AGENCY_SMTP_FROM=<sender email>
+- AGENCY_LEAD_NOTIFICATION_TO=<lead notification recipient>
+- AGENCY_DEPLOY_PROVIDER=vercel
+- VERCEL_PROJECT_ID=<project id>
+- VERCEL_TOKEN=<server token>
 - NEXT_PUBLIC_TURNSTILE_SITE_KEY=<public site key>
 - NEXT_PUBLIC_AGENCY_LEAD_API_URL=https://<api-origin>
 - NEXT_PUBLIC_AGENCY_AGENT_API_URL=https://<api-origin> when the customer agent is enabled
@@ -50,7 +64,7 @@ Domain attachment requires an existing live deployment and normalizes a DNS host
 - `change_requests`, `provider_credentials`, `automation_events` and `knowledge_chunks` (docs/DOMAIN-OPS.md) are documented tables that the MVP does not yet create; maintenance work currently lives in `audit_log` and `deployments`.
 
 ## Production provider posture
-Production must use real provider implementations: `AGENCY_RESEARCH_PROVIDER=tavily`, `AGENCY_LLM_PROVIDER=local`, `AGENCY_NOTIFY_PROVIDER=smtp`, and `AGENCY_DEPLOY_PROVIDER=vercel`. Mock/console/local-static providers are test or development choices and are rejected by the production preflight and API startup.
+Production must use real provider implementations: `AGENCY_RESEARCH_PROVIDER=tavily`, `AGENCY_LLM_PROVIDER=local`, `AGENCY_NOTIFY_PROVIDER=smtp`, and `AGENCY_DEPLOY_PROVIDER=vercel`. Mock/console/local-static providers are test or development choices and are rejected by the production preflight and API startup. The local LLM must use the bounded-context Agency model (for this PC: `agency-qwen3-4k`) rather than the upstream `qwen3:0.6b` default.
 Request-level provider overrides are also rejected in production: research, LLM content generation, and preview deployment must use the configured production provider even when a caller supplies a `provider` field explicitly.
 
 ## Runtime preflight

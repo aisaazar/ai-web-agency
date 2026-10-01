@@ -67,11 +67,46 @@ if (researchProvider !== "tavily") {
 const llmProvider = required("AGENCY_LLM_PROVIDER").toLowerCase();
 if (llmProvider !== "local") {
   failures.push("Production content generation requires AGENCY_LLM_PROVIDER=local");
+} else {
+  const llmBaseUrl = required("AGENCY_LOCAL_LLM_BASE_URL");
+  const llmModel = required("AGENCY_LOCAL_LLM_MODEL");
+  if (llmBaseUrl) {
+    try {
+      const url = new URL(llmBaseUrl);
+      if (!["http:", "https:"].includes(url.protocol)) failures.push("AGENCY_LOCAL_LLM_BASE_URL must use HTTP or HTTPS");
+      if (url.username || url.password) failures.push("AGENCY_LOCAL_LLM_BASE_URL must not contain credentials");
+    } catch {
+      failures.push("AGENCY_LOCAL_LLM_BASE_URL is not a valid URL");
+    }
+  }
+  if (llmModel && /qwen3:0\.6b$/u.test(llmModel)) {
+    failures.push("AGENCY_LOCAL_LLM_MODEL must use the bounded-context Agency model (for example agency-qwen3-4k)");
+  }
 }
 
 const notifyProvider = required("AGENCY_NOTIFY_PROVIDER").toLowerCase();
 if (notifyProvider !== "smtp") {
   failures.push("Production notifications require AGENCY_NOTIFY_PROVIDER=smtp");
+} else {
+  required("AGENCY_SMTP_HOST");
+  const smtpFrom = required("AGENCY_SMTP_FROM");
+  const notificationTo = required("AGENCY_LEAD_NOTIFICATION_TO");
+  const smtpPortRaw = required("AGENCY_SMTP_PORT");
+  const smtpPort = Number.parseInt(smtpPortRaw, 10);
+  if (smtpPortRaw && (!Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535)) {
+    failures.push("AGENCY_SMTP_PORT must be an integer from 1 to 65535");
+  }
+  if (smtpFrom && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(smtpFrom)) {
+    failures.push("AGENCY_SMTP_FROM must be a valid email address");
+  }
+  if (notificationTo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(notificationTo)) {
+    failures.push("AGENCY_LEAD_NOTIFICATION_TO must be a valid email address");
+  }
+  const smtpUsername = (process.env.AGENCY_SMTP_USERNAME || "").trim();
+  const smtpPassword = (process.env.AGENCY_SMTP_PASSWORD || "").trim();
+  if (Boolean(smtpUsername) !== Boolean(smtpPassword)) {
+    failures.push("AGENCY_SMTP_USERNAME and AGENCY_SMTP_PASSWORD must be set together");
+  }
 }
 
 if (failures.length) {
