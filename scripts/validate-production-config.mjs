@@ -60,6 +60,7 @@ if (provider === "vercel") {
 }
 
 const researchProvider = required("AGENCY_RESEARCH_PROVIDER").toLowerCase();
+if (researchProvider === "tavily") required("TAVILY_API_KEY");
 if (researchProvider !== "tavily") {
   failures.push("Production research requires AGENCY_RESEARCH_PROVIDER=tavily");
 }
@@ -80,7 +81,7 @@ if (llmProvider !== "local") {
     }
   }
   if (llmModel && /qwen3:0\.6b$/u.test(llmModel)) {
-    failures.push("AGENCY_LOCAL_LLM_MODEL must use the bounded-context Agency model (for example agency-qwen3-4k)");
+    failures.push("AGENCY_LOCAL_LLM_MODEL must use the bounded-context Agency model (for example agency-qwen3-8k)");
   }
 }
 

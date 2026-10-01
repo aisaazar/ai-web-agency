@@ -37,6 +37,7 @@ for (const [name, expected] of [
   if (actual !== expected) failures.push(`${name}=${expected} is required (got ${actual || "missing"})`);
 }
 
+required("TAVILY_API_KEY");
 const leadApi = required("NEXT_PUBLIC_AGENCY_LEAD_API_URL");
 const siteId = required("NEXT_PUBLIC_AGENCY_SITE_ID");
 required("NEXT_PUBLIC_TURNSTILE_SITE_KEY");

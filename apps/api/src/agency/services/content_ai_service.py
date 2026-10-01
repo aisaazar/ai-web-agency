@@ -164,7 +164,7 @@ def generate_content_with_llm(
                         LLMMessage("user", request_user),
                     ),
                     temperature=0.2,
-                    max_tokens=6000,
+                    max_tokens=4000,
                 ),
             )
             payload = json.loads(response.content)
