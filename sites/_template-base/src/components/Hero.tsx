@@ -11,29 +11,21 @@ const NAV_LINKS = [
   ["Reach Us", "#kontakt"],
 ] as const;
 
-const FALLBACK_VIDEO = "/media/velorah-hero.mp4";
 const FALLBACK_POSTER = "/media/dental-clinic-hero.jpg";
 
 export function Hero() {
   const hero = content.hero;
-  const videoSource = hero.background_video || FALLBACK_VIDEO;
   const posterSource = hero.background_image || FALLBACK_POSTER;
   const ctaHref = hero.primary_cta?.href || "#kontakt";
 
   return (
     <section id="home" aria-labelledby="hero-heading" className="cinematic-hero relative min-h-screen overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
-      <video
+      <img
+        src={posterSource}
+        alt=""
         aria-hidden="true"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        poster={posterSource}
-        className="hero-video absolute inset-0 z-0 h-full w-full object-cover"
-      >
-        <source src={videoSource} type="video/mp4" />
-      </video>
+        className="absolute inset-0 z-0 h-full w-full object-cover"
+      />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <nav aria-label="Primary navigation" className="liquid-glass mx-auto mt-5 flex w-[calc(100%-2rem)] max-w-7xl items-center justify-between rounded-full px-5 py-3 md:mt-6 md:px-8">
