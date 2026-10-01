@@ -64,9 +64,25 @@ def create_backup(database: Path, artifacts: Path, output_dir: Path) -> Path:
             bundle.write(db_copy, "agency.db")
             bundle.write(manifest_path, "manifest.json")
             if artifacts.is_dir():
+                artifacts_root = artifacts.resolve()
+                output_root = output_dir.resolve()
+                archive_path = archive.resolve()
                 for path in artifacts.rglob("*"):
-                    if path.is_file():
-                        bundle.write(path, Path("artifacts") / path.relative_to(artifacts))
+                    if not path.is_file():
+                        continue
+                    resolved = path.resolve()
+                    # Never archive the bundle being written. When the output directory is
+                    # nested under the artifacts root, exclude the entire output subtree too,
+                    # otherwise old backup bundles compound into every new backup.
+                    if resolved == archive_path:
+                        continue
+                    if (
+                        output_root != artifacts_root
+                        and output_root.is_relative_to(artifacts_root)
+                        and resolved.is_relative_to(output_root)
+                    ):
+                        continue
+                    bundle.write(path, Path("artifacts") / path.relative_to(artifacts))
     return archive
 
 
