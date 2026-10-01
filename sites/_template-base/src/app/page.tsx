@@ -10,6 +10,7 @@ import { Highlights } from "@/components/Highlights";
 import { JsonLd } from "@/components/JsonLd";
 import { OpeningHours } from "@/components/OpeningHours";
 import { Services } from "@/components/Services";
+import { SponsorsSection } from "@/components/SponsorsSection";
 import { Team } from "@/components/Team";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -35,6 +36,7 @@ export default function HomePage() {
       <OpeningHours />
       <Faq />
       <ContactSection />
+      <SponsorsSection />
       {agentEnabled ? <AgentWidget /> : null}
     </>
   );
