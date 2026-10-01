@@ -184,21 +184,31 @@ class VercelDeploymentProvider(DeploymentProvider):
         return DeployResult(self.name, resolved_ref, "live", url)
 
     def rollback(self, site_id: str, to_build_hash: str) -> DeployResult:
-        deployments = self._request(
-            "GET",
-            f"/v13/deployments?projectId={quote(self._project_id())}&limit=100",
-        )
-        items = deployments.get("deployments")
-        if not isinstance(items, list):
-            raise VercelDeploymentError("Vercel deployment list has no deployments")
+        project_id = quote(self._project_id())
+        cursor = None
         match = None
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            meta = item.get("meta") or {}
-            if isinstance(meta, dict) and meta.get("ai_web_agency_build_hash") == to_build_hash:
-                match = item
+        while True:
+            query = f"/v13/deployments?projectId={project_id}&limit=100"
+            if cursor:
+                query += f"&until={quote(cursor, safe='')}"
+            deployments = self._request("GET", query)
+            items = deployments.get("deployments")
+            if not isinstance(items, list):
+                raise VercelDeploymentError("Vercel deployment list has no deployments")
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                meta = item.get("meta") or {}
+                if isinstance(meta, dict) and meta.get("ai_web_agency_build_hash") == to_build_hash:
+                    match = item
+                    break
+            if match:
                 break
+            pagination = deployments.get("pagination") or {}
+            next_cursor = pagination.get("next") if isinstance(pagination, dict) else None
+            if not isinstance(next_cursor, str) or not next_cursor or next_cursor == cursor:
+                break
+            cursor = next_cursor
         if not match:
             raise VercelDeploymentError(f"Vercel deployment for build {to_build_hash} not found")
         deployment_ref = match.get("id") or match.get("url")

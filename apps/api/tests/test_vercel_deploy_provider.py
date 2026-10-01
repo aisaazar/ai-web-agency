@@ -159,6 +159,36 @@ def test_vercel_rollback_finds_build_metadata_and_promotes(monkeypatch):
     assert any("/promote/dpl_target" in url for url in seen)
 
 
+def test_vercel_rollback_paginates_until_build_metadata_is_found(monkeypatch):
+    _configure(monkeypatch)
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        seen.append(request.full_url)
+        if "until=" not in request.full_url:
+            return _Response({
+                "deployments": [{"id": "dpl_other", "url": "other.vercel.app", "meta": {}}],
+                "pagination": {"next": "1700000000000"},
+            })
+        if "/v13/deployments?projectId=" in request.full_url and "until=1700000000000" in request.full_url:
+            return _Response({
+                "deployments": [{
+                    "id": "dpl_target",
+                    "url": "target.vercel.app",
+                    "meta": {"ai_web_agency_build_hash": "b" * 64},
+                }],
+            })
+        return _Response()
+
+    monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
+    result = VercelDeploymentProvider().rollback("site-1", "b" * 64)
+
+    assert result.deploy_ref == "dpl_target"
+    assert result.url == "https://target.vercel.app"
+    assert any("until=1700000000000" in url for url in seen)
+    assert any("/promote/dpl_target" in url for url in seen)
+
+
 def test_vercel_rollback_rejects_match_without_url(monkeypatch):
     _configure(monkeypatch)
 
