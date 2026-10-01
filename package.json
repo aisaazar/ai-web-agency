@@ -38,7 +38,8 @@
     "test": "npm run audit:secrets && npm run test:production-config && npm run test:gate-policy && npm run test:python && npm run test:site && npm run test:dashboard",
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
-    "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard"
+    "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard",
+    "pilot:preflight": "node scripts/pilot-preflight.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

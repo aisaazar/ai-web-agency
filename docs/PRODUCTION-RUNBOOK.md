@@ -17,6 +17,7 @@ Never commit secrets or copy secret values into content artifacts.
 
 ## Pre-deploy gates
 Run npm test.
+For a real-client pilot, run `npm run pilot:preflight` with `CONTENT_FILE` set to the reviewed client JSON. It rejects fixture content and mock provider posture before any production deployment step.
 For a production site artifact, run: npm run validate:production; npm run build:site; npm run validate:output; npm run qa:smoke.
 Run npm run audit:secrets before touching a deployment secret store: it fails on credential-shaped material in tracked files, on a real `.env` being tracked, and on secret-looking NEXT_PUBLIC_* names (that namespace ships to browsers).
 A production content artifact must not remain a fixture and must have reviewed legal status.
