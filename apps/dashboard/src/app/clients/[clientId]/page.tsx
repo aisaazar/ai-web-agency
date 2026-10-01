@@ -81,9 +81,9 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       action = <ActionForm action="generate-content" clientId={clientId} hidden={{ provider: "local" }}>Retry failed content generation</ActionForm>;
       break;
     case "PREVIEW_READY":
-      if (build && siteVersion && !latestPreview) {
+      if (build && siteVersion && latestPreview?.status !== "preview") {
         action = <ActionForm action="preview" clientId={clientId} hidden={{ site_version_id: siteVersion.id }}>Deploy preview</ActionForm>;
-      } else if (build) {
+      } else if (build && latestPreview?.status === "preview") {
         action = <ActionForm action="approve-publish" clientId={clientId} hidden={{ artifact_id: build.id }}>Approve preview</ActionForm>;
       }
       break;
