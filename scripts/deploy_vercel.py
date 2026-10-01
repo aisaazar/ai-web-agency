@@ -1,4 +1,4 @@
-"""Deploy an already validated immutable site build to Vercel."""
+"""Deploy an explicitly selected, already validated immutable site build to Vercel."""
 from __future__ import annotations
 
 import argparse
@@ -34,25 +34,18 @@ def production_preflight() -> None:
         raise SystemExit("Production runtime preflight failed; deployment was not attempted.")
 
 
-def latest_build_hash() -> str:
-    builds = sorted(
-        (path for path in BUILD_ROOT.iterdir() if path.is_dir()),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    if not builds:
-        raise SystemExit("No immutable build bundles found. Run the site build pipeline first.")
-    return builds[0].name
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--build-hash", help="64-character immutable build hash")
+    parser.add_argument(
+        "--build-hash",
+        required=True,
+        help="64-character immutable build hash for the reviewed/approved site build",
+    )
     parser.add_argument("--domain", help="Optional custom domain to attach to the Vercel project")
     args = parser.parse_args()
     production_preflight()
 
-    build_hash = args.build_hash or latest_build_hash()
+    build_hash = args.build_hash
     output_dir = BUILD_ROOT / build_hash
     if not output_dir.is_dir():
         raise SystemExit(f"Build bundle not found: {build_hash}")
