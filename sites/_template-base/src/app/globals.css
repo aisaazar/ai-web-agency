@@ -55,6 +55,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes hero-photo-drift {
+  0%, 100% { transform: scale(1.04) translate3d(0, 0, 0); }
+  50% { transform: scale(1.1) translate3d(-1.2%, -0.8%, 0); }
+}
+
+.hero-photo-motion {
+  transform-origin: center center;
+  animation: hero-photo-drift 18s ease-in-out infinite alternate;
+}
+
 .animate-fade-rise { animation: fade-rise 0.8s ease-out both; }
 .animate-fade-rise-delay { animation: fade-rise 0.8s ease-out 0.2s both; }
 .animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
@@ -62,7 +72,8 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-rise,
   .animate-fade-rise-delay,
-  .animate-fade-rise-delay-2 { animation: none; }
+  .animate-fade-rise-delay-2,
+  .hero-photo-motion { animation: none; }
 }
 
 body:has(.cinematic-hero) > header,

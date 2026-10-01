@@ -24,7 +24,7 @@ export function Hero() {
         src={posterSource}
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 z-0 h-full w-full object-cover"
+        className="hero-photo-motion absolute inset-0 z-0 h-full w-full object-cover"
       />
 
       <div className="relative z-10 flex min-h-screen flex-col">
