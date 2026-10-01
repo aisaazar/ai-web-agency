@@ -79,7 +79,9 @@ Object.assign(data.hero, {
     "Diese private Konzeptseite zeigt, wie die vorhandenen Informationen klarer und mobilfreundlich strukturiert werden können."
   ],
   primary_cta: { label: "Termin anfragen", href: "#kontakt" },
-  secondary_cta: { label: "Leistungen ansehen", href: "/leistungen" }
+  secondary_cta: { label: "Leistungen ansehen", href: "/leistungen" },
+  background_image: "/media/praxis-demo.svg",
+  background_video: "/media/praxis-demo.mp4"
 });
 
 data.highlights = [

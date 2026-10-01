@@ -29,7 +29,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
-CONTENT_SCHEMA_VERSION = "1.1.0"
+CONTENT_SCHEMA_VERSION = "1.2.0"
 
 # --- primitive constraints ---------------------------------------------------------------------
 
@@ -197,6 +197,8 @@ class HeroSection(ContentBase):
     paragraphs: Annotated[list[Paragraph], Field(min_length=1)]
     primary_cta: Cta
     secondary_cta: Cta | None = None
+    background_image: SameOriginPath | None = None
+    background_video: SameOriginPath | None = None
 
 
 class Highlight(ContentBase):

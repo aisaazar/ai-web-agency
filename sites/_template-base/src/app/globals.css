@@ -55,4 +55,10 @@
   address {
     font-style: normal;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-motion {
+      display: none;
+    }
+  }
 }

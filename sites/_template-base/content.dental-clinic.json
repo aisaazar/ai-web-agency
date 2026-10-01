@@ -1,5 +1,5 @@
 {
-  "content_schema_version": "1.1.0",
+  "content_schema_version": "1.2.0",
   "meta": {
     "client_slug": "zahnbalance-nuernberg",
     "is_fixture": true,
@@ -79,7 +79,9 @@
       "Von der Vorsorge bis zur ästhetischen Behandlung steht im Mittelpunkt, was zu Ihnen passt."
     ],
     "primary_cta": {"label": "Termin anfragen", "href": "#kontakt"},
-    "secondary_cta": {"label": "Leistungen ansehen", "href": "/leistungen"}
+    "secondary_cta": {"label": "Leistungen ansehen", "href": "/leistungen"},
+    "background_image": "/media/praxis-demo.svg",
+    "background_video": "/media/praxis-demo.mp4"
   },
   "highlights": [
     {"icon": "heart", "title": "Zeit für Fragen", "body": "Behandlungen und Optionen werden in verständlicher Sprache besprochen."},

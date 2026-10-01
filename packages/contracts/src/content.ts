@@ -138,6 +138,8 @@ export type Items = [FaqItem, ...FaqItem[]];
  */
 export type Answer = [string, ...string[]];
 export type Question = string;
+export type BackgroundImage = string | null;
+export type BackgroundVideo = string | null;
 export type Eyebrow = string | null;
 export type Headline = string;
 /**
@@ -484,6 +486,8 @@ export interface FaqItem {
   question: Question;
 }
 export interface HeroSection {
+  background_image?: BackgroundImage;
+  background_video?: BackgroundVideo;
   eyebrow?: Eyebrow;
   headline: Headline;
   paragraphs: Paragraphs;

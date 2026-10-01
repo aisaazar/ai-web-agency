@@ -4,6 +4,7 @@ import { content } from "@/lib/content";
 import { phoneHref } from "@/lib/format";
 import { UI } from "@/lib/ui-strings";
 import { Container } from "./ui";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { SiteNav, type NavItem } from "./SiteNav";
 
 /** Anchor targets that exist on the home page. Kept here so nav and page cannot drift apart. */
@@ -43,6 +44,7 @@ export function SiteHeader() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
           <SiteNav items={NAV_ITEMS} ariaLabel={UI.primaryNav} />
+          <LanguageSwitcher />
           <a
             href={phoneHref(business.contact.phone)}
             className="inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-surface hover:bg-brand-700"
