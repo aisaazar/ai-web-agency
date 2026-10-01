@@ -30,7 +30,7 @@ export function MediaSection() {
           {images.map((item) => (
             <figure
               key={item.id}
-              className="overflow-hidden rounded-lg border border-line bg-surface"
+              className="motion-card overflow-hidden"
             >
               <div className="relative aspect-[16/10]">
                 <Image
@@ -59,7 +59,7 @@ export function MediaSection() {
           {videos.map((item) => (
             <figure
               key={item.id}
-              className="overflow-hidden rounded-lg border border-line bg-surface"
+              className="motion-card overflow-hidden"
             >
               <video
                 className="aspect-video w-full object-cover"

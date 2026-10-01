@@ -16,7 +16,7 @@ export function AboutSection() {
             <p key={paragraph}>{paragraph}</p>
           ))}
         </div>
-        <div className="rounded-lg border border-line bg-surface p-6">
+        <div className="motion-card p-7 lg:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Praxisinhaber</p>
           <h3 className="mt-2 text-xl font-semibold text-ink">{owner.name}</h3>          <p className="mt-1 text-sm font-medium text-brand-700">{owner.role}</p>
           {owner.bio.map((paragraph) => (

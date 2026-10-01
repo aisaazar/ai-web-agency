@@ -21,20 +21,20 @@ export function Services({ detailed = false }: { detailed?: boolean }) {
       </SectionHeading>
       <Paragraphs items={services.intro} />
 
-      <ul className="mt-10 grid gap-6 sm:grid-cols-2">
+      <ul className="mt-10 grid gap-4 sm:grid-cols-2">
         {services.items.map((service) => {
           const features = service.features ?? [];
           return (
           <li
             key={service.id}
             id={detailed ? service.id : undefined}
-            className="rounded-lg border border-line bg-surface p-6"
+            className="motion-card group p-6 sm:p-7"
           >
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 text-brand-600">
+              <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-105">
                 <Icon name={service.icon} />
               </span>
-              <h3 className="text-lg font-semibold text-ink">{service.title}</h3>
+              <h3 className="font-display text-2xl font-normal tracking-[-0.02em] text-ink">{service.title}</h3>
             </div>
             <p className="mt-3 text-ink-muted">{service.summary}</p>
 

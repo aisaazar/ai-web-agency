@@ -133,3 +133,31 @@ body:has(.cinematic-hero) { background: hsl(var(--background)); }
     }
   }
 }
+
+/* Art direction: editorial medical + cinematic motion + 3D-inspired depth. */
+.font-display { font-family: var(--font-display); }
+.glass-panel { border: 1px solid rgba(255,255,255,.14); background: rgba(7,17,20,.28); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-radius: 1.25rem; }
+.hero-poster-motion { transform: scale(1.05); animation: hero-poster 22s ease-in-out infinite alternate; filter: saturate(.78) contrast(1.04); }
+.hero-veil { background: radial-gradient(circle at 72% 34%, rgba(184,230,220,.12), transparent 28%), linear-gradient(180deg, rgba(5,14,16,.28) 0%, rgba(5,14,16,.14) 38%, rgba(5,14,16,.86) 100%), linear-gradient(90deg, rgba(4,12,14,.72) 0%, rgba(4,12,14,.2) 62%, rgba(4,12,14,.34) 100%); }
+.hero-orbit { position:absolute; z-index:2; pointer-events:none; border:1px solid rgba(255,255,255,.16); border-radius:999px; }
+.hero-orbit-one { width:38vw; height:38vw; right:-12vw; top:18%; transform:rotate(22deg); animation: orbit-drift 18s ease-in-out infinite alternate; }
+.hero-orbit-two { width:22vw; height:22vw; right:7vw; top:34%; border-color:rgba(168,222,214,.28); animation: orbit-spin 26s linear infinite; }
+.motion-card { position:relative; overflow:hidden; border:1px solid var(--color-line); border-radius:1.25rem; background:var(--color-surface); transition:transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s ease; }
+.motion-card::after { content:""; position:absolute; inset:auto -30% -55% -30%; height:70%; background:radial-gradient(circle, rgba(31,96,112,.11), transparent 60%); opacity:0; transition:opacity .45s ease; pointer-events:none; }
+.motion-card:hover { transform:translateY(-8px); box-shadow:0 24px 70px rgba(16,26,29,.12); }
+.motion-card:hover::after { opacity:1; }
+.marquee { overflow:hidden; mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent); }
+.marquee-track { display:flex; width:max-content; animation:marquee 28s linear infinite; }
+.tooth-shell { transform-style:preserve-3d; perspective:900px; }
+.tooth-orbit { transform-style:preserve-3d; animation:tooth-float 7s ease-in-out infinite; }
+.tooth-core { transition:transform .6s cubic-bezier(.2,.8,.2,1), filter .6s ease; }
+.tooth-orbit:hover .tooth-core { transform:rotateY(20deg) rotateX(8deg) translateZ(18px) scale(1.03); filter:drop-shadow(0 28px 26px rgba(31,96,112,.22)); }
+@keyframes hero-poster { from{transform:scale(1.05) translate3d(0,0,0)} to{transform:scale(1.11) translate3d(-1.2%,-.8%,0)} }
+@keyframes orbit-drift { from{transform:rotate(18deg) translate3d(0,0,0)} to{transform:rotate(30deg) translate3d(-2vw,1vw,0)} }
+@keyframes orbit-spin { to{transform:rotate(360deg)} }
+@keyframes tooth-float { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-12px) rotate(2deg)} }
+@keyframes marquee { to{transform:translateX(-50%)} }
+@media (prefers-reduced-motion:reduce) {
+  .hero-poster-motion,.hero-orbit,.marquee-track,.tooth-orbit{animation:none!important}
+  .motion-card,.tooth-core{transition:none}
+}

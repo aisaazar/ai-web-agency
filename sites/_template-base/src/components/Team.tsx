@@ -20,7 +20,7 @@ export function Team() {
         {team.members.map((member) => {
           const focusAreas = member.focus_areas ?? [];
           return (
-          <li key={member.id} className="rounded-lg border border-line bg-surface p-6">
+          <li key={member.id} className="motion-card group p-6 sm:p-7">
             <div
               aria-hidden="true"
               className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-base font-semibold text-brand-700"
