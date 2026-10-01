@@ -21,7 +21,7 @@ export function Hero() {
       {hero.background_image ? (
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-20 bg-cover bg-center"
+          className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${hero.background_image})` }}
         />
       ) : null}
@@ -33,16 +33,16 @@ export function Hero() {
           loop
           playsInline
           poster={hero.background_image ?? undefined}
-          className="hero-motion absolute inset-0 -z-10 h-full w-full object-cover"
+          className="hero-motion absolute inset-0 z-0 h-full w-full object-cover"
         >
           <source src={hero.background_video} type="video/mp4" />
         </video>
       ) : null}
       {hasBackground ? (
-        <div aria-hidden="true" className="absolute inset-0 -z-[5] bg-brand-50/85" />
+        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-brand-50/70" />
       ) : null}
 
-      <div className="relative">
+      <div className="relative z-10">
         {hero.eyebrow ? (
           <p className="mb-3 text-sm font-semibold tracking-wide text-brand-600 uppercase">
             {hero.eyebrow}
