@@ -21,6 +21,12 @@ For a production site artifact, run: npm run validate:production; npm run build:
 Run npm run audit:secrets before touching a deployment secret store: it fails on credential-shaped material in tracked files, on a real `.env` being tracked, and on secret-looking NEXT_PUBLIC_* names (that namespace ships to browsers).
 A production content artifact must not remain a fixture and must have reviewed legal status.
 
+## Database migrations
+Schema history is tracked with Alembic under `apps/api/alembic`.
+Before a production rollout, apply migrations with: `npm run db:migrate`
+Check the applied revision with: `npm run db:current`
+Generate a new reviewed revision only from model changes; do not hand-edit an existing applied revision.
+
 ## Database backup and restore drill
 Create a backup with: npm run db:backup
 Test a restore with: npm run db:restore

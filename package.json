@@ -33,6 +33,8 @@
     "test:dashboard": "npm run dashboard:security:check && npm run typecheck:dashboard && npm run build:dashboard",
     "db:backup": "node scripts/py.mjs scripts/sqlite_backup.py backup agency.db .artifacts/backups/agency.db",
     "db:restore": "node scripts/py.mjs scripts/sqlite_backup.py restore .artifacts/backups/agency.db agency-restored.db",
+    "db:migrate": "node scripts/py.mjs -m alembic upgrade head",
+    "db:current": "node scripts/py.mjs -m alembic current",
     "test": "npm run audit:secrets && npm run test:production-config && npm run test:gate-policy && npm run test:python && npm run test:site && npm run test:dashboard",
     "api:dev": "node scripts/py.mjs -m uvicorn agency.api.app:app --reload",
     "dev:site": "npm run dev --workspace @ai-web-agency/template-base",
