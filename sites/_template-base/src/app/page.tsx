@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { AboutSection } from "@/components/AboutSection";
+import { AddressSection } from "@/components/AddressSection";
 import { AgentWidget } from "@/components/AgentWidget";
 import { ContactSection } from "@/components/ContactSection";
 import { Faq } from "@/components/Faq";
@@ -27,7 +29,9 @@ export default function HomePage() {
         </div>
       </section>
       <Services />
+      <AboutSection />
       <Team />
+      <AddressSection />
       <OpeningHours />
       <Faq />
       <ContactSection />

@@ -13,13 +13,17 @@ export const SECTION_ANCHORS = {
   services: "leistungen",
   faq: "fragen",
   contact: "kontakt",
+  about: "ueber-uns",
+  address: "adresse",
 } as const;
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: "/", label: "Start" },
   { href: "/leistungen", label: "Leistungen" },
+  { href: `/#${SECTION_ANCHORS.about}`, label: "Über uns" },
   { href: `/#${SECTION_ANCHORS.team}`, label: "Team" },
   { href: `/#${SECTION_ANCHORS.hours}`, label: "Sprechzeiten" },
+  { href: `/#${SECTION_ANCHORS.address}`, label: "Adresse" },
   { href: `/#${SECTION_ANCHORS.contact}`, label: "Kontakt" },
 ];
 
