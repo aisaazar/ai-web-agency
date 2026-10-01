@@ -198,15 +198,6 @@
         "title": "Moderner Praxisraum",
         "caption": "Demo-Foto — vor Veröffentlichung durch ein freigegebenes Kundenfoto ersetzen."
       }
-    ],
-    "videos": [
-      {
-        "id": "praxis-video",
-        "src": "/media/praxis-demo.mp4",
-        "poster": "/media/praxis-demo.svg",
-        "title": "Kurzer Praxis-Eindruck",
-        "caption": "Demo-Video — zeigt die Medienfunktion des Templates mit lokaler, statischer Videodatei."
-      }
     ]
   },
   "faq": {
