@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -15,6 +17,17 @@ from agency.providers.vercel_deploy import VercelDeploymentProvider
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILD_ROOT = REPO_ROOT / ".artifacts" / "builds"
+PRODUCTION_PREFLIGHT = REPO_ROOT / "scripts" / "validate-production-config.mjs"
+
+
+def production_preflight() -> None:
+    """Refuse direct Vercel deployment unless production runtime config is valid."""
+    node = shutil.which("node")
+    if node is None:
+        raise SystemExit("Node.js is required for production runtime preflight")
+    result = subprocess.run([node, str(PRODUCTION_PREFLIGHT)], cwd=REPO_ROOT, check=False)
+    if result.returncode != 0:
+        raise SystemExit("Production runtime preflight failed; deployment was not attempted.")
 
 
 def latest_build_hash() -> str:
@@ -33,6 +46,7 @@ def main() -> int:
     parser.add_argument("--build-hash", help="64-character immutable build hash")
     parser.add_argument("--domain", help="Optional custom domain to attach to the Vercel project")
     args = parser.parse_args()
+    production_preflight()
 
     build_hash = args.build_hash or latest_build_hash()
     output_dir = BUILD_ROOT / build_hash
