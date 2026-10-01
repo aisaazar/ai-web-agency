@@ -40,6 +40,9 @@ test("production preflight accepts structurally valid synthetic Vercel config", 
     AGENCY_DEPLOY_PROVIDER: "vercel",
     VERCEL_PROJECT_ID: "prj_synthetic",
     VERCEL_TOKEN: "synthetic",
+    AGENCY_RESEARCH_PROVIDER: "tavily",
+    AGENCY_LLM_PROVIDER: "local",
+    AGENCY_NOTIFY_PROVIDER: "smtp",
   });
   assert.equal(code, 0);
 });
@@ -67,6 +70,38 @@ test("production preflight rejects legacy unauthenticated access", () => {
     AGENCY_ALLOW_LEGACY_UNAUTH: "true",
   });
   assert.equal(code, 1);
+});
+
+test("production preflight rejects mock providers", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "postgresql://db.example/agency",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "local_static",
+    AGENCY_RESEARCH_PROVIDER: "mock",
+    AGENCY_LLM_PROVIDER: "mock",
+    AGENCY_NOTIFY_PROVIDER: "console",
+  });
+  assert.equal(code, 1);
+});
+
+test("production preflight accepts real pilot provider posture", () => {
+  const code = run({
+    AGENCY_ENV: "production",
+    AGENCY_DATABASE_URL: "postgresql://db.example/agency",
+    AGENCY_ALLOWED_ORIGINS: "https://client.example",
+    AGENCY_COOKIE_SECURE: "true",
+    AGENCY_TURNSTILE_SECRET: "synthetic",
+    AGENCY_DEPLOY_PROVIDER: "vercel",
+    VERCEL_PROJECT_ID: "prj_synthetic",
+    VERCEL_TOKEN: "synthetic",
+    AGENCY_RESEARCH_PROVIDER: "tavily",
+    AGENCY_LLM_PROVIDER: "local",
+    AGENCY_NOTIFY_PROVIDER: "smtp",
+  });
+  assert.equal(code, 0);
 });
 
 test("production preflight rejects insecure origins", () => {

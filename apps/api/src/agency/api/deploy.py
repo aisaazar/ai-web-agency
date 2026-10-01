@@ -1,4 +1,5 @@
 """Deployment endpoints."""
+import os
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -61,6 +62,10 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     @router.post("/preview", status_code=201)
     def preview(payload: PreviewRequest, request: Request, session: Session = Depends(db_dependency)):
         require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
+        if os.getenv("AGENCY_ENV", "development").strip().lower() == "production":
+            configured = os.getenv("AGENCY_DEPLOY_PROVIDER", "").strip().lower()
+            if payload.provider.strip().lower() != configured:
+                raise HTTPException(status_code=400, detail="production deployment provider override is not allowed")
         try:
             deploy = create_preview(
                 session,

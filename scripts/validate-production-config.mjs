@@ -51,12 +51,27 @@ if (["1", "true", "yes"].includes(legacyUnauth)) {
 }
 
 const provider = required("AGENCY_DEPLOY_PROVIDER").toLowerCase();
-if (!["local_static", "vercel"].includes(provider)) {
-  failures.push("AGENCY_DEPLOY_PROVIDER must be local_static or vercel");
+if (provider !== "vercel") {
+  failures.push("Production deployment requires AGENCY_DEPLOY_PROVIDER=vercel");
 }
 if (provider === "vercel") {
   required("VERCEL_PROJECT_ID");
   required("VERCEL_TOKEN");
+}
+
+const researchProvider = required("AGENCY_RESEARCH_PROVIDER").toLowerCase();
+if (researchProvider !== "tavily") {
+  failures.push("Production research requires AGENCY_RESEARCH_PROVIDER=tavily");
+}
+
+const llmProvider = required("AGENCY_LLM_PROVIDER").toLowerCase();
+if (llmProvider !== "local") {
+  failures.push("Production content generation requires AGENCY_LLM_PROVIDER=local");
+}
+
+const notifyProvider = required("AGENCY_NOTIFY_PROVIDER").toLowerCase();
+if (notifyProvider !== "smtp") {
+  failures.push("Production notifications require AGENCY_NOTIFY_PROVIDER=smtp");
 }
 
 if (failures.length) {

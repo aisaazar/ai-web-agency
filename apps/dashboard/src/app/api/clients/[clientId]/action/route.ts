@@ -6,6 +6,7 @@ const API_BASE_URL =
   "http://localhost:8000";
 const ORG_ID = process.env.AGENCY_ORG_ID;
 const RESEARCH_PROVIDER = process.env.AGENCY_RESEARCH_PROVIDER?.trim() || "mock";
+const LLM_PROVIDER = process.env.AGENCY_LLM_PROVIDER?.trim() || "mock";
 const DEPLOY_PROVIDER = process.env.AGENCY_DEPLOY_PROVIDER?.trim() || "local_static";
 
 type Params = { params: Promise<{ clientId: string }> };
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       break;
     case "generate-content":
       path = "/v1/content";
-      payload = { ...base, mode: "llm", provider: String(form.get("provider") ?? "mock") };
+      payload = { ...base, mode: "llm", provider: String(form.get("provider") ?? LLM_PROVIDER) };
       break;
     case "approve-content":
       path = "/v1/content/approve";

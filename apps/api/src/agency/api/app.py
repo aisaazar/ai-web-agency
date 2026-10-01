@@ -51,6 +51,18 @@ def create_app(database_url: str | None = None) -> FastAPI:
             raise RuntimeError("production requires AGENCY_TURNSTILE_SECRET")
         if os.getenv("AGENCY_ALLOW_LEGACY_UNAUTH", "").strip().lower() in {"1", "true", "yes"}:
             raise RuntimeError("production forbids AGENCY_ALLOW_LEGACY_UNAUTH")
+        research_provider = os.getenv("AGENCY_RESEARCH_PROVIDER", "").strip().lower()
+        if research_provider != "tavily":
+            raise RuntimeError("production requires AGENCY_RESEARCH_PROVIDER=tavily")
+        llm_provider = os.getenv("AGENCY_LLM_PROVIDER", "").strip().lower()
+        if llm_provider != "local":
+            raise RuntimeError("production requires AGENCY_LLM_PROVIDER=local")
+        notify_provider = os.getenv("AGENCY_NOTIFY_PROVIDER", "").strip().lower()
+        if notify_provider != "smtp":
+            raise RuntimeError("production requires AGENCY_NOTIFY_PROVIDER=smtp")
+        deploy_provider = os.getenv("AGENCY_DEPLOY_PROVIDER", "").strip().lower()
+        if deploy_provider != "vercel":
+            raise RuntimeError("production requires AGENCY_DEPLOY_PROVIDER=vercel")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,

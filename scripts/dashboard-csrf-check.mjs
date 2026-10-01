@@ -43,6 +43,15 @@ const actionRoute = readFileSync(
   "utf8",
 );
 for (const fragment of [
+  'const LLM_PROVIDER = process.env.AGENCY_LLM_PROVIDER?.trim() || "mock";',
+  'provider: String(form.get("provider") ?? LLM_PROVIDER)',
+]) {
+  if (!actionRoute.includes(fragment)) {
+    throw new Error("provider default regression: missing " + fragment);
+  }
+}
+
+for (const fragment of [
   'case "design": {',
   '["health", "corporate", "warm"].includes(presetId)',
   'preset_id: presetId',

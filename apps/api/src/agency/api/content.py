@@ -1,4 +1,5 @@
 """Content generation and approval endpoints."""
+import os
 from typing import Literal
 from uuid import UUID
 
@@ -38,6 +39,11 @@ def build_router(session_factory: sessionmaker[Session]) -> APIRouter:
     @router.post("", status_code=201)
     def generate(payload: ContentGenerationRequest, request: Request, session: Session = Depends(db_dependency)):
         require_role_or_legacy(session, request, org_id=payload.org_id, roles={"owner", "operator"})
+        if payload.mode == "llm" and os.getenv("AGENCY_ENV", "development").strip().lower() == "production":
+            configured = os.getenv("AGENCY_LLM_PROVIDER", "").strip().lower()
+            requested = (payload.provider or configured).strip().lower()
+            if requested != configured:
+                raise HTTPException(status_code=400, detail="production LLM provider override is not allowed")
         try:
             if payload.mode == "llm":
                 artifact = generate_content_with_llm(

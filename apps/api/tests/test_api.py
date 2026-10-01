@@ -33,7 +33,7 @@ def test_production_requires_database_url(monkeypatch):
 
 
 def test_production_rejects_insecure_origin(monkeypatch):
-    monkeypatch.setenv("AGENCY_ENV", "production")
+    _set_production_provider_env(monkeypatch)
     monkeypatch.setenv("AGENCY_DATABASE_URL", "sqlite:///tmp/agency.db")
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "http://client.example")
     monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
@@ -43,7 +43,7 @@ def test_production_rejects_insecure_origin(monkeypatch):
 
 
 def test_production_requires_secure_cookie(monkeypatch):
-    monkeypatch.setenv("AGENCY_ENV", "production")
+    _set_production_provider_env(monkeypatch)
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
     monkeypatch.setenv("AGENCY_COOKIE_SECURE", "false")
 
@@ -52,7 +52,7 @@ def test_production_requires_secure_cookie(monkeypatch):
 
 
 def test_production_forbids_legacy_unauthenticated_access(monkeypatch):
-    monkeypatch.setenv("AGENCY_ENV", "production")
+    _set_production_provider_env(monkeypatch)
     monkeypatch.setenv("AGENCY_DATABASE_URL", "sqlite:///tmp/agency.db")
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
     monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
@@ -63,8 +63,35 @@ def test_production_forbids_legacy_unauthenticated_access(monkeypatch):
         create_app("sqlite:///:memory:")
 
 
-def test_production_requires_turnstile_secret(monkeypatch):
+def _set_production_provider_env(monkeypatch):
     monkeypatch.setenv("AGENCY_ENV", "production")
+    monkeypatch.setenv("AGENCY_DATABASE_URL", "postgresql://db.example/agency")
+    monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
+    monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
+    monkeypatch.setenv("AGENCY_TURNSTILE_SECRET", "synthetic")
+    monkeypatch.setenv("AGENCY_ALLOW_LEGACY_UNAUTH", "false")
+    monkeypatch.setenv("AGENCY_RESEARCH_PROVIDER", "tavily")
+    monkeypatch.setenv("AGENCY_LLM_PROVIDER", "local")
+    monkeypatch.setenv("AGENCY_NOTIFY_PROVIDER", "smtp")
+    monkeypatch.setenv("AGENCY_DEPLOY_PROVIDER", "vercel")
+
+
+def test_production_requires_real_provider_posture(monkeypatch):
+    _set_production_provider_env(monkeypatch)
+    monkeypatch.setenv("AGENCY_RESEARCH_PROVIDER", "mock")
+    with pytest.raises(RuntimeError, match="AGENCY_RESEARCH_PROVIDER=tavily"):
+        create_app("sqlite:///:memory:")
+
+
+def test_production_requires_vercel_deployment(monkeypatch):
+    _set_production_provider_env(monkeypatch)
+    monkeypatch.setenv("AGENCY_DEPLOY_PROVIDER", "local_static")
+    with pytest.raises(RuntimeError, match="AGENCY_DEPLOY_PROVIDER=vercel"):
+        create_app("sqlite:///:memory:")
+
+
+def test_production_requires_turnstile_secret(monkeypatch):
+    _set_production_provider_env(monkeypatch)
     monkeypatch.setenv("AGENCY_ALLOWED_ORIGINS", "https://client.example")
     monkeypatch.setenv("AGENCY_COOKIE_SECURE", "true")
     monkeypatch.delenv("AGENCY_TURNSTILE_SECRET", raising=False)

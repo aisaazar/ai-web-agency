@@ -48,6 +48,10 @@ Domain attachment requires an existing live deployment and normalizes a DNS host
 - Per-site deploy tokens are a runbook rule, not a code rule: `VERCEL_TOKEN` is the platform token and must be scoped to the target project by hand. Rotate it whenever a client leaves.
 - `change_requests`, `provider_credentials`, `automation_events` and `knowledge_chunks` (docs/DOMAIN-OPS.md) are documented tables that the MVP does not yet create; maintenance work currently lives in `audit_log` and `deployments`.
 
+## Production provider posture
+Production must use real provider implementations: `AGENCY_RESEARCH_PROVIDER=tavily`, `AGENCY_LLM_PROVIDER=local`, `AGENCY_NOTIFY_PROVIDER=smtp`, and `AGENCY_DEPLOY_PROVIDER=vercel`. Mock/console/local-static providers are test or development choices and are rejected by the production preflight and API startup.
+Request-level provider overrides are also rejected in production: research, LLM content generation, and preview deployment must use the configured production provider even when a caller supplies a `provider` field explicitly.
+
 ## Runtime preflight
 Before starting the production API, run: npm run validate:production:runtime.
 This checks production mode, HTTPS CORS origins, secure cookies, Turnstile configuration, and the selected deployment provider.

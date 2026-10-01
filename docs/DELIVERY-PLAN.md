@@ -39,3 +39,11 @@ A handover is considered complete when all of the following are true:
 ## Explicitly deferred
 
 The following remain outside Monday delivery scope: second templates, 3D sites, page-builder functionality, billing, self-serve signup, automated DNS purchase, reseller tenancy, vector infrastructure beyond embedded/local search, autonomous lead discovery, and client CMS functionality.
+
+## Engineering checkpoint ? October 1, 2026
+
+The full repository test command passes after production-provider hardening. Production startup and request paths now reject mock research, mock LLM content generation, console notifications, and local-static deployment posture. Dashboard workflow defaults follow configured providers instead of silently selecting a mock LLM provider.
+
+Verified in this checkpoint: full Python test suite, production configuration tests, content gates, all design-token presets, static site build/output/smoke QA, dashboard security/typecheck/build, release E2E, and local browser checks for the public site and dashboard login.
+
+This does not replace the real-client acceptance line: a real client, real domain, real production provider credentials, and a real lead are still required before commercial handover is declared complete.
