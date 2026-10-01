@@ -219,6 +219,9 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     env["CONTENT_FILE"] = content_file.name
     env["NEXT_PUBLIC_AGENCY_CLIENT_ID"] = str(client_id)
     env["NEXT_PUBLIC_AGENCY_SITE_ID"] = str(site.id)
+    env["DESIGN_PRESET_ID"] = str(design.payload_json["design_preset_id"])
+    generated_tokens_path = TEMPLATE_ROOT / "src" / "styles" / "design-tokens.generated.css"
+    original_tokens = generated_tokens_path.read_bytes() if generated_tokens_path.is_file() else None
     public_api_url = (
         env.get("NEXT_PUBLIC_AGENCY_LEAD_API_URL")
         or env.get("NEXT_PUBLIC_AGENCY_AGENT_API_URL")
@@ -232,6 +235,10 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     try:
         passed_build, build_detail = _run(["npm", "run", "build:site"], cwd=REPO_ROOT, env=env)
     finally:
+        if original_tokens is not None:
+            generated_tokens_path.write_bytes(original_tokens)
+        else:
+            generated_tokens_path.unlink(missing_ok=True)
         content_file.unlink(missing_ok=True)
 
     legal_paths = {page.path for page in ContentModel.model_validate(content.payload_json).seo.pages}

@@ -25,7 +25,7 @@ def design_site(session: Session, *, org_id, client_id, content_artifact_id, pre
         raise DesignError("content is not ready for design")
     if not belongs_to_client(session, org_id=org_id, artifact=content, client_id=client_id):
         raise DesignError("content artifact does not belong to client")
-    if preset_id not in {"health"}:
+    if preset_id not in {"health", "corporate", "warm"}:
         raise DesignError(f"unknown design preset: {preset_id}")
 
     pipeline.state = transition(pipeline.state, "DESIGNING").to_state

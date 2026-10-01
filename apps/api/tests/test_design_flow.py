@@ -4,6 +4,7 @@ from uuid import UUID
 
 import anyio
 import httpx
+import pytest
 
 from agency.api import create_app
 from agency.db import create_all, create_session_factory
@@ -39,7 +40,8 @@ def _seed(database_url):
     return org, client
 
 
-def test_content_approval_then_design_advance_pipeline(tmp_path):
+@pytest.mark.parametrize("preset_id", ["health", "corporate", "warm"])
+def test_content_approval_then_design_advance_pipeline(tmp_path, preset_id):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
     org, client = _seed(database_url)
     app = create_app(database_url)
@@ -57,7 +59,7 @@ def test_content_approval_then_design_advance_pipeline(tmp_path):
 
     designed = _post(app, "/v1/design", {
         "org_id": str(org.id), "client_id": str(client.id),
-        "content_artifact_id": content_id, "preset_id": "health", "template_version": "1.0.0",
+        "content_artifact_id": content_id, "preset_id": preset_id, "template_version": "1.0.0",
     })
     assert designed.status_code == 201 and designed.json()["state"] == "DESIGN_APPROVED"
 

@@ -41,7 +41,20 @@ export const templateConfig = readJson(path.join(TEMPLATE_ROOT, "template.config
  */
 export const contentFile = process.env.CONTENT_FILE?.trim() || templateConfig.content_file;
 export const contentPath = path.resolve(TEMPLATE_ROOT, contentFile);
-export const designPresetPath = path.resolve(TEMPLATE_ROOT, templateConfig.design_preset_file);
+
+const requestedPresetId =
+  process.env.DESIGN_PRESET_ID?.trim()
+  || process.argv.find((arg) => arg.startsWith("--preset="))?.slice("--preset=".length).trim();
+
+function resolveDesignPresetPath() {
+  if (!requestedPresetId) return path.resolve(TEMPLATE_ROOT, templateConfig.design_preset_file);
+  if (!/^[a-z0-9-]+$/.test(requestedPresetId)) {
+    throw new Error("DESIGN_PRESET_ID must contain only lowercase letters, digits and hyphens");
+  }
+  return path.join(REPO_ROOT, "sites", "_presets", `${requestedPresetId}.json`);
+}
+
+export const designPresetPath = resolveDesignPresetPath();
 
 export const readContent = () => readJson(contentPath);
 export const readDesignPreset = () => readJson(designPresetPath);

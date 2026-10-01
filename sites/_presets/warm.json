@@ -1,0 +1,48 @@
+{
+  "$comment": "Warm design preset: terracotta and cream palette for hospitality and human-centered local businesses. Hand-authored tokens; contrast is validated deterministically by the generator.",
+  "id": "warm",
+  "label": "Warm / Human",
+  "description": "Warm terracotta palette for welcoming local businesses. Soft surfaces, clear typography and restrained rounded forms.",
+  "version": "1.0.0",
+  "tokens": {
+    "colors": {
+      "surface": "#FFFCF7",
+      "surface-muted": "#F8F1E8",
+      "line": "#E4D5C6",
+      "ink": "#2A211B",
+      "ink-muted": "#6B5A4F",
+      "brand-50": "#FBF1E8",
+      "brand-100": "#F4DECE",
+      "brand-200": "#E9BFA4",
+      "brand-300": "#D99872",
+      "brand-400": "#C56F45",
+      "brand-500": "#AA5B35",
+      "brand-600": "#8F4F2F",
+      "brand-700": "#6D3B23",
+      "brand-800": "#512A19",      "accent-100": "#F8E1D4",
+      "accent-600": "#8A3B12",
+      "accent-700": "#6B2E0E",
+      "focus": "#8F4F2F"
+    },
+    "radius": {
+      "sm": "0.375rem",
+      "md": "0.625rem",
+      "lg": "0.875rem",
+      "xl": "1.5rem"
+    },
+    "fonts": {
+      "sans": "\"Inter\", system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+    },
+    "contrastPairs": [
+      { "foreground": "ink", "background": "surface", "minRatio": 4.5, "usage": "body text" },
+      { "foreground": "ink-muted", "background": "surface", "minRatio": 4.5, "usage": "secondary text" },
+      { "foreground": "ink-muted", "background": "surface-muted", "minRatio": 4.5, "usage": "secondary text on muted surface" },
+      { "foreground": "brand-600", "background": "surface", "minRatio": 4.5, "usage": "links and headings on light surface" },      { "foreground": "surface", "background": "brand-600", "minRatio": 4.5, "usage": "primary button label" },
+      { "foreground": "surface", "background": "brand-700", "minRatio": 4.5, "usage": "primary button label, hover" },
+      { "foreground": "brand-700", "background": "brand-50", "minRatio": 4.5, "usage": "text on tinted panels" },
+      { "foreground": "accent-700", "background": "accent-100", "minRatio": 4.5, "usage": "badge text" },
+      { "foreground": "accent-600", "background": "surface", "minRatio": 4.5, "usage": "accent text on light surface" },
+      { "foreground": "line", "background": "surface", "minRatio": 1.2, "usage": "hairlines" }
+    ]
+  }
+}

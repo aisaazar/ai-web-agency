@@ -70,6 +70,7 @@ function render(preset) {
 
 const report = createReport("design tokens");
 const checkOnly = process.argv.includes("--check");
+const validateOnly = process.argv.includes("--validate");
 const preset = readDesignPreset();
 const colors = preset.tokens?.colors ?? {};
 
@@ -106,7 +107,9 @@ for (const pair of preset.tokens?.contrastPairs ?? []) {
 
 const css = render(preset);
 const current = existsSync(OUTPUT_PATH) ? readFileSync(OUTPUT_PATH, "utf8") : null;
-if (current !== null && normalizeEol(current) === normalizeEol(css)) {
+if (validateOnly) {
+  report.note("generated CSS", "validation-only; active template output was not changed");
+} else if (current !== null && normalizeEol(current) === normalizeEol(css)) {
   report.check("generated CSS up to date", true, "src/styles/design-tokens.generated.css");
 } else if (checkOnly) {
   report.check("generated CSS up to date", false, "STALE - run `npm run tokens`");

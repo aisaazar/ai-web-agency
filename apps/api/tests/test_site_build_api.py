@@ -4,6 +4,7 @@ from uuid import UUID
 
 import anyio
 import httpx
+import pytest
 
 from agency.api import create_app
 from agency.db import create_all, create_session_factory
@@ -31,7 +32,7 @@ def _post(app, path, payload):
     return anyio.run(request)
 
 
-def _seed(database_url):
+def _seed(database_url, preset_id="health"):
     create_all(database_url)
     factory = create_session_factory(database_url)
     session = factory()
@@ -66,7 +67,7 @@ def _seed(database_url):
             "client_id": str(client.id),
             "template_id": "_template-base",
             "template_version": "1.0.0",
-            "design_preset_id": "health",
+            "design_preset_id": preset_id,
         },
     )
     session.add_all([content, design, PipelineRun(
@@ -123,9 +124,10 @@ def test_site_build_endpoint_reaches_preview_ready(tmp_path, monkeypatch):
     session.close()
 
 
-def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch):
+@pytest.mark.parametrize("preset_id", ["health", "corporate", "warm"])
+def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch, preset_id):
     database_url = f"sqlite:///{tmp_path / 'agency.db'}"
-    org, client, content_id, design_id = _seed(database_url)
+    org, client, content_id, design_id = _seed(database_url, preset_id)
     captured: dict[tuple[str, ...], dict[str, str]] = {}
 
     import agency.services.site_build_service as build_module
@@ -134,6 +136,7 @@ def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch)
         captured[tuple(command)] = {
             "client_id": env["NEXT_PUBLIC_AGENCY_CLIENT_ID"],
             "site_id": env["NEXT_PUBLIC_AGENCY_SITE_ID"],
+            "design_preset": env["DESIGN_PRESET_ID"],
             "lead_api": env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"],
             "agent_api": env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"],
         }
@@ -157,9 +160,37 @@ def test_site_build_injects_per_client_public_runtime_ids(tmp_path, monkeypatch)
     assert response.status_code == 201
     build_env = captured[("npm", "run", "build:site")]
     assert build_env["client_id"] == str(client.id)
+    assert build_env["design_preset"] == preset_id
     assert build_env["lead_api"] == "https://api.example.test"
     assert build_env["agent_api"] == "https://api.example.test"
     assert UUID(build_env["site_id"])
+
+
+def test_site_build_restores_template_tokens_after_preset_build(tmp_path, monkeypatch):
+    database_url = f"sqlite:///{tmp_path / 'agency.db'}"
+    org, client, content_id, design_id = _seed(database_url, "corporate")
+
+    import agency.services.site_build_service as build_module
+    generated_tokens_path = build_module.TEMPLATE_ROOT / "src" / "styles" / "design-tokens.generated.css"
+    original = generated_tokens_path.read_bytes()
+
+    def fake_run(command, *, cwd, env):
+        if command == ["npm", "run", "build:site"]:
+            generated_tokens_path.write_text("temporary corporate tokens", encoding="utf-8")
+        return True, f"mocked: {' '.join(command)}"
+
+    monkeypatch.setattr(build_module, "_run", fake_run)
+    monkeypatch.setattr(build_module, "_persist_build_bundle", _fake_persist_build_bundle)
+
+    response = _post(create_app(database_url), "/v1/builds/site", {
+        "org_id": str(org.id),
+        "client_id": str(client.id),
+        "content_artifact_id": str(content_id),
+        "design_artifact_id": str(design_id),
+    })
+
+    assert response.status_code == 201
+    assert generated_tokens_path.read_bytes() == original
 
 
 def test_site_build_preserves_separate_public_runtime_endpoints(tmp_path, monkeypatch):
