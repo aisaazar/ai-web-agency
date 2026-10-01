@@ -13,24 +13,30 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const error = params.error ? messages[params.error] : undefined;
 
   return (
-    <main className="authPage">
-      <section className="card authCard">
-        <div className="eyebrow">AI Web Agency</div>
-        <h1>Sign in</h1>
-        <p className="muted">Access your agency operations dashboard.</p>
-        {error ? <p className="error">{error}</p> : null}
-        <form action="/api/auth/login" method="post" className="authForm">
-          <label>
-            Email
-            <input name="email" type="email" autoComplete="email" required />
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" autoComplete="current-password" required />
-          </label>
-          <button className="button" type="submit">Sign in</button>
-        </form>
-      </section>
-    </main>
+    <section className="authPage" aria-labelledby="login-title">
+      <div className="authCard">
+        <section className="card authPanel">
+          <div className="eyebrow">AI Web Agency</div>
+          <h1 id="login-title">Sign in</h1>
+          <p className="muted">Access your agency operations dashboard.</p>
+          {error ? (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <form action="/api/auth/login" method="post" className="authForm">
+            <label>
+              Email
+              <input name="email" type="email" autoComplete="email" required autoFocus />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" autoComplete="current-password" required />
+            </label>
+            <button className="button" type="submit">Sign in</button>
+          </form>
+        </section>
+      </div>
+    </section>
   );
 }
