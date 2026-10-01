@@ -2,6 +2,8 @@
 
 import os
 import time
+from collections import OrderedDict
+from threading import Lock
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -36,7 +38,9 @@ from agency.services.auth_service import (
 
 _LOGIN_LIMIT = 5
 _LOGIN_WINDOW_SECONDS = 15 * 60
-_login_failures: dict[str, list[float]] = {}
+MAX_LOGIN_BUCKETS = 4096
+_login_failures: OrderedDict[str, list[float]] = OrderedDict()
+_LOGIN_LOCK = Lock()
 
 
 def _login_key(request: Request, email: str) -> str:
@@ -47,19 +51,35 @@ def _login_key(request: Request, email: str) -> str:
 def _check_login_limit(request: Request, email: str) -> str:
     key = _login_key(request, email)
     now = time.monotonic()
-    recent = [stamp for stamp in _login_failures.get(key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
-    _login_failures[key] = recent
-    if len(recent) >= _LOGIN_LIMIT:
-        raise HTTPException(status_code=429, detail="too many login attempts", headers={"Retry-After": "900"})
+    with _LOGIN_LOCK:
+        recent = [
+            stamp for stamp in _login_failures.get(key, [])
+            if now - stamp < _LOGIN_WINDOW_SECONDS
+        ]
+        if key not in _login_failures and len(_login_failures) >= MAX_LOGIN_BUCKETS:
+            _login_failures.popitem(last=False)
+        _login_failures[key] = recent
+        _login_failures.move_to_end(key)
+        if len(recent) >= _LOGIN_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail="too many login attempts",
+                headers={"Retry-After": "900"},
+            )
     return key
 
 
 def _record_login_failure(key: str) -> None:
-    _login_failures.setdefault(key, []).append(time.monotonic())
+    with _LOGIN_LOCK:
+        if key not in _login_failures and len(_login_failures) >= MAX_LOGIN_BUCKETS:
+            _login_failures.popitem(last=False)
+        _login_failures.setdefault(key, []).append(time.monotonic())
+        _login_failures.move_to_end(key)
 
 
 def _clear_login_failures(key: str) -> None:
-    _login_failures.pop(key, None)
+    with _LOGIN_LOCK:
+        _login_failures.pop(key, None)
 
 
 def build_router(session_factory: sessionmaker[Session]) -> APIRouter:

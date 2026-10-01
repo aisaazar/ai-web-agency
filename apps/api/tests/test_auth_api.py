@@ -154,3 +154,29 @@ def test_login_rate_limit_blocks_repeated_failures(tmp_path):
     responses = anyio.run(flow)
     assert [response.status_code for response in responses] == [401, 401, 401, 401, 401, 429]
     assert responses[-1].headers["retry-after"] == "900"
+
+
+def test_login_failure_buckets_are_bounded(tmp_path, monkeypatch):
+    from agency.api import auth as auth_api
+
+    auth_api._login_failures.clear()
+    monkeypatch.setattr(auth_api, "MAX_LOGIN_BUCKETS", 2)
+    app = create_app(f"sqlite:///{tmp_path / 'bounded-login.db'}")
+
+    async def flow():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            for email in ("one@example.com", "two@example.com", "three@example.com"):
+                response = await client.post(
+                    "/v1/auth/login",
+                    json={"email": email, "password": "wrong password"},
+                )
+                assert response.status_code == 401
+
+    try:
+        anyio.run(flow)
+        assert len(auth_api._login_failures) == 2
+        assert "127.0.0.1:one@example.com" not in auth_api._login_failures
+        assert "127.0.0.1:three@example.com" in auth_api._login_failures
+    finally:
+        auth_api._login_failures.clear()
