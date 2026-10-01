@@ -39,10 +39,10 @@ export function Hero() {
         </video>
       ) : null}
       {hasBackground ? (
-        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-brand-50/70" />
+        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-gradient-to-r from-white/90 via-white/45 to-transparent" />
       ) : null}
 
-      <div className="relative z-10">
+      <div className="relative z-10 max-w-3xl rounded-2xl bg-white/82 p-6 shadow-xl backdrop-blur-sm sm:p-8">
         {hero.eyebrow ? (
           <p className="mb-3 text-sm font-semibold tracking-wide text-brand-600 uppercase">
             {hero.eyebrow}

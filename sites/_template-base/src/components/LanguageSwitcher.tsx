@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-const LABELS = {
-  de: { text: "DE", aria: "Sprache auswählen" },
-  en: { text: "EN", aria: "Select language" },
-} as const;
+const LANGUAGES = [
+  ["de", "Deutsch"],
+  ["en", "English"],
+  ["fr", "Français"],
+  ["es", "Español"],
+  ["it", "Italiano"],
+  ["tr", "Türkçe"],
+  ["ar", "العربية"],
+  ["fa", "فارسی"],
+] as const;
 
 export function LanguageSwitcher() {
   const [currentUrl, setCurrentUrl] = useState("");
@@ -14,29 +20,28 @@ export function LanguageSwitcher() {
     setCurrentUrl(window.location.href);
   }, []);
 
-  const englishUrl = currentUrl
-    ? "https://translate.google.com/translate?sl=auto&tl=en&u=" + encodeURIComponent(currentUrl)
-    : "https://translate.google.com/";
+  const translateUrl = (language: string) =>
+    currentUrl
+      ? `https://translate.google.com/translate?sl=auto&tl=${language}&u=${encodeURIComponent(currentUrl)}`
+      : "https://translate.google.com/";
 
   return (
-    <div className="inline-flex items-center rounded-md border border-line bg-surface/95 p-1 text-xs font-semibold backdrop-blur">
-      <span className="sr-only">{LABELS.de.aria}</span>
-      <span
-        aria-current="page"
-        className="rounded px-2 py-1 text-brand-700"
-        title="Deutsch"
-      >
-        {LABELS.de.text}
-      </span>
-      <a
-        href={englishUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="rounded px-2 py-1 text-ink-muted hover:bg-brand-50 hover:text-brand-700"
-        title="English — automatic translation"
-      >
-        {LABELS.en.text}
-      </a>
-    </div>
+    <details className="relative">
+      <summary className="cursor-pointer list-none rounded-md border border-line bg-surface/95 px-3 py-2 text-xs font-semibold text-brand-700 shadow-sm backdrop-blur">
+        DE <span aria-hidden="true">⌄</span>
+      </summary>
+      <div className="absolute right-0 top-full z-50 mt-2 w-40 rounded-lg border border-line bg-surface p-1 shadow-xl">
+        {LANGUAGES.map(([code, name]) => (
+          <a
+            key={code}
+            href={translateUrl(code)}
+            className="block rounded-md px-3 py-2 text-sm text-ink hover:bg-brand-50 hover:text-brand-700"
+            title={`${name} — automatic translation`}
+          >
+            {code.toUpperCase()} — {name}
+          </a>
+        ))}
+      </div>
+    </details>
   );
 }

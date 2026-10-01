@@ -80,8 +80,7 @@
     ],
     "primary_cta": {"label": "Termin anfragen", "href": "#kontakt"},
     "secondary_cta": {"label": "Leistungen ansehen", "href": "/leistungen"},
-    "background_image": "/media/praxis-demo.svg",
-    "background_video": "/media/praxis-demo.mp4"
+    "background_image": "/media/praxis-hero.svg"
   },
   "highlights": [
     {"icon": "heart", "title": "Zeit für Fragen", "body": "Behandlungen und Optionen werden in verständlicher Sprache besprochen."},
