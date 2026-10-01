@@ -96,7 +96,27 @@ def test_vercel_preview_rejects_failed_deployment(monkeypatch, tmp_path):
         )
 
 
-def test_vercel_promote_uses_preview_url(monkeypatch):
+def test_vercel_promote_resolves_preview_url_before_promoting(monkeypatch):
+    _configure(monkeypatch)
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        seen.append(request.full_url)
+        if request.get_method() == "GET":
+            return _Response({"id": "dpl_123", "url": "site-preview.vercel.app"})
+        return _Response()
+
+    monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
+    result = VercelDeploymentProvider().promote("https://site-preview.vercel.app")
+
+    assert result.status == "live"
+    assert result.deploy_ref == "dpl_123"
+    assert result.url == "https://site-preview.vercel.app"
+    assert seen[0].endswith("/v13/deployments/https%3A%2F%2Fsite-preview.vercel.app")
+    assert seen[1] == "https://api.vercel.com/v10/projects/prj_test/promote/dpl_123"
+
+
+def test_vercel_promote_uses_deployment_id_directly(monkeypatch):
     _configure(monkeypatch)
     seen = []
 
@@ -105,10 +125,11 @@ def test_vercel_promote_uses_preview_url(monkeypatch):
         return _Response()
 
     monkeypatch.setattr("agency.providers.vercel_deploy.urlopen", fake_urlopen)
-    result = VercelDeploymentProvider().promote("https://site-preview.vercel.app")
+    result = VercelDeploymentProvider().promote("dpl_123")
 
     assert result.status == "live"
-    assert seen[0] == "https://api.vercel.com/v10/projects/prj_test/promote/https%3A%2F%2Fsite-preview.vercel.app"
+    assert result.deploy_ref == "dpl_123"
+    assert seen[0] == "https://api.vercel.com/v10/projects/prj_test/promote/dpl_123"
 
 
 def test_vercel_rollback_finds_build_metadata_and_promotes(monkeypatch):

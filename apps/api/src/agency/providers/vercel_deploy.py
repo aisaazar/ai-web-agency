@@ -166,10 +166,22 @@ class VercelDeploymentProvider(DeploymentProvider):
         project_id = self._project_id()
         if not deploy_ref.strip():
             raise VercelDeploymentError("deployment reference must not be empty")
-        encoded = quote(deploy_ref, safe="")
+        resolved_ref = deploy_ref.strip()
+        if resolved_ref.startswith("http"):
+            deployment = self._request("GET", f"/v13/deployments/{quote(resolved_ref, safe='')}")
+            deployment_id = deployment.get("id")
+            deployment_url = deployment.get("url")
+            if not isinstance(deployment_id, str) or not deployment_id:
+                raise VercelDeploymentError("Vercel deployment lookup returned no id")
+            if not isinstance(deployment_url, str) or not deployment_url:
+                raise VercelDeploymentError("Vercel deployment lookup returned no url")
+            resolved_ref = deployment_id
+            url = deployment_url if deployment_url.startswith("http") else f"https://{deployment_url}"
+        else:
+            url = f"https://{resolved_ref}.vercel.app"
+        encoded = quote(resolved_ref, safe="")
         self._request("POST", f"/v10/projects/{project_id}/promote/{encoded}")
-        url = deploy_ref if deploy_ref.startswith("http") else f"https://{deploy_ref}.vercel.app"
-        return DeployResult(self.name, deploy_ref, "live", url)
+        return DeployResult(self.name, resolved_ref, "live", url)
 
     def rollback(self, site_id: str, to_build_hash: str) -> DeployResult:
         deployments = self._request(
