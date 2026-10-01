@@ -31,6 +31,25 @@ function ActionForm({ action, clientId, hidden = {}, children }: {
   );
 }
 
+function DesignActionForm({ clientId, contentArtifactId }: { clientId: string; contentArtifactId: string }) {
+  return (
+    <form action={`/api/clients/${clientId}/action`} method="post">
+      <input type="hidden" name="action" value="design" />
+      <input type="hidden" name="client_id" value={clientId} />
+      <input type="hidden" name="artifact_id" value={contentArtifactId} />
+      <label>
+        Design preset
+        <select name="preset_id" defaultValue="health">
+          <option value="health">Health / Praxis</option>
+          <option value="corporate">Corporate / Professional</option>
+          <option value="warm">Warm / Human</option>
+        </select>
+      </label>
+      <button className="button" type="submit">Create design</button>
+    </form>
+  );
+}
+
 function findArtifact(detail: Awaited<ReturnType<typeof fetchClientDetail>>, type: string) {
   return detail.artifacts.find((item) => item.type === type);
 }
@@ -69,7 +88,7 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       if (content) action = <ActionForm action="approve-content" clientId={clientId} hidden={{ artifact_id: content.id }}>Approve content</ActionForm>;
       break;
     case "CONTENT_APPROVED":
-      if (content) action = <ActionForm action="design" clientId={clientId} hidden={{ artifact_id: content.id }}>Create design</ActionForm>;
+      if (content) action = <DesignActionForm clientId={clientId} contentArtifactId={content.id} />;
       break;
     case "DESIGN_APPROVED":
       if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;

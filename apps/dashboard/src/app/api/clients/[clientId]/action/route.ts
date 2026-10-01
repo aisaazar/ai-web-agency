@@ -51,15 +51,20 @@ export async function POST(request: NextRequest, { params }: Params) {
       path = "/v1/content/approve";
       payload = { ...base, artifact_id: String(form.get("artifact_id") ?? ""), approved_by: "dashboard", feedback: null };
       break;
-    case "design":
+    case "design": {
+      const presetId = String(form.get("preset_id") ?? "health").trim();
+      if (!["health", "corporate", "warm"].includes(presetId)) {
+        return NextResponse.json({ detail: "Invalid design preset" }, { status: 400 });
+      }
       path = "/v1/design";
       payload = {
         ...base,
         content_artifact_id: String(form.get("artifact_id") ?? ""),
-        preset_id: "health",
+        preset_id: presetId,
         template_version: "1.0.0",
       };
       break;
+    }
     case "build":
       path = "/v1/builds/site";
       payload = {

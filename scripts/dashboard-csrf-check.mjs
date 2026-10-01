@@ -38,4 +38,30 @@ for (const fragment of failedRetry) {
   }
 }
 
+const actionRoute = readFileSync(
+  join(root, "apps", "dashboard", "src", "app", "api", "clients", "[clientId]", "action", "route.ts"),
+  "utf8",
+);
+for (const fragment of [
+  'case "design": {',
+  '["health", "corporate", "warm"].includes(presetId)',
+  'preset_id: presetId',
+]) {
+  if (!actionRoute.includes(fragment)) {
+    throw new Error("design preset forwarding regression: missing " + fragment);
+  }
+}
+
+for (const fragment of [
+  'name="preset_id"',
+  'value="health"',
+  'value="corporate"',
+  'value="warm"',
+  "Design preset",
+]) {
+  if (!clientPage.includes(fragment)) {
+    throw new Error("design preset selector regression: missing " + fragment);
+  }
+}
+
 console.log("dashboard-csrf-check: PASS");
