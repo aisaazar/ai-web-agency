@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/instrument-serif-regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/instrument-serif-italic.ttf") format("truetype");
+}
+
 /*
  * Self-hosted fonts. The woff2 files live in `public/fonts` and are shipped with the site, so the
  * built page never opens a connection to a font CDN. This is both a DSGVO requirement and a formal

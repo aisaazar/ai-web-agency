@@ -81,7 +81,7 @@
     "primary_cta": {"label": "Termin anfragen", "href": "#kontakt"},
     "secondary_cta": {"label": "Leistungen ansehen", "href": "/leistungen"},
     "background_image": "/media/dental-clinic-hero.jpg",
-    "background_video": "/media/praxis-demo.mp4"
+    "background_video": "/media/velorah-hero.mp4"
   },
   "highlights": [
     {"icon": "heart", "title": "Zeit für Fragen", "body": "Behandlungen und Optionen werden in verständlicher Sprache besprochen."},

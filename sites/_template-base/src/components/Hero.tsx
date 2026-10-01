@@ -1,69 +1,81 @@
 import Link from "next/link";
 
 import { content } from "@/lib/content";
-import { Paragraphs, Section } from "./ui";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
-const PRIMARY_CTA_CLASS =
-  "inline-flex items-center justify-center rounded-md bg-brand-600 px-5 py-3 text-base font-semibold text-surface hover:bg-brand-700";
-const SECONDARY_CTA_CLASS =
-  "inline-flex items-center justify-center rounded-md border border-brand-600 px-5 py-3 text-base font-semibold text-brand-700 hover:bg-brand-50";
+const NAV_LINKS = [
+  ["Home", "#home"],
+  ["Studio", "#leistungen"],
+  ["About", "#ueber-uns"],
+  ["Journal", "#medien"],
+  ["Reach Us", "#kontakt"],
+] as const;
 
-/** Hero: single H1, with optional data-driven image/motion background. */
+const FALLBACK_VIDEO = "/media/velorah-hero.mp4";
+const FALLBACK_POSTER = "/media/dental-clinic-hero.jpg";
+
 export function Hero() {
-  const { hero } = content;
-  const hasBackground = Boolean(hero.background_image || hero.background_video);
+  const hero = content.hero;
+  const videoSource = hero.background_video || FALLBACK_VIDEO;
+  const posterSource = hero.background_image || FALLBACK_POSTER;
+  const ctaHref = hero.primary_cta?.href || "#kontakt";
 
   return (
-    <Section
-      labelledBy="hero-heading"
-      className="relative isolate overflow-hidden border-b border-line bg-brand-50 py-14 sm:py-20"
-    >
-      {hero.background_image ? (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 z-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${hero.background_image})` }}
-        />
-      ) : null}
-      {hero.background_video ? (
-        <video
-          aria-hidden="true"
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster={hero.background_image ?? undefined}
-          className="hero-motion absolute inset-0 z-0 h-full w-full object-cover opacity-25 mix-blend-multiply"
-        >
-          <source src={hero.background_video} type="video/mp4" />
-        </video>
-      ) : null}
-      {hasBackground ? (
-        <div aria-hidden="true" className="absolute inset-0 z-[1] bg-gradient-to-r from-white/88 via-white/30 to-black/10" />
-      ) : null}
+    <section id="home" aria-labelledby="hero-heading" className="cinematic-hero relative min-h-screen overflow-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
+      <video
+        aria-hidden="true"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        poster={posterSource}
+        className="hero-video absolute inset-0 z-0 h-full w-full object-cover"
+      >
+        <source src={videoSource} type="video/mp4" />
+      </video>
 
-      <div className="relative z-10 max-w-3xl rounded-2xl bg-white/82 p-6 shadow-xl backdrop-blur-sm sm:p-8">
-        {hero.eyebrow ? (
-          <p className="mb-3 text-sm font-semibold tracking-wide text-brand-600 uppercase">
-            {hero.eyebrow}
-          </p>
-        ) : null}
-        <h1 id="hero-heading" className="max-w-3xl text-3xl font-semibold text-ink sm:text-4xl">
-          {hero.headline}
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg text-ink-muted">{hero.subheadline}</p>
-        <Paragraphs items={hero.paragraphs} className="mt-6" />
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href={hero.primary_cta.href} className={PRIMARY_CTA_CLASS}>
-            {hero.primary_cta.label}
-          </Link>
-          {hero.secondary_cta ? (
-            <Link href={hero.secondary_cta.href} className={SECONDARY_CTA_CLASS}>
-              {hero.secondary_cta.label}
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <nav aria-label="Primary navigation" className="liquid-glass mx-auto mt-5 flex w-[calc(100%-2rem)] max-w-7xl items-center justify-between rounded-full px-5 py-3 md:mt-6 md:px-8">
+          <div className="flex w-full items-center justify-between gap-6">
+            <Link href="#home" className="shrink-0 text-3xl tracking-tight text-[hsl(var(--foreground))]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+              Velorah<sup className="ml-0.5 text-xs">®</sup>
             </Link>
-          ) : null}
+            <div className="hidden items-center gap-7 md:flex">
+              {NAV_LINKS.map(([label, href], index) => (
+                <Link
+                  key={label}
+                  href={href}
+                  aria-current={index === 0 ? "page" : undefined}
+                  className="text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <LanguageSwitcher />
+              <Link href={ctaHref} className="liquid-glass hidden rounded-full px-5 py-2.5 text-sm text-[hsl(var(--foreground))] transition-transform hover:scale-[1.03] sm:inline-flex">
+                Begin Journey
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        <div className="flex flex-1 items-center justify-center px-6 pb-28 pt-20 text-center md:pb-36 md:pt-24">
+          <div className="mx-auto max-w-7xl">
+            <h1 id="hero-heading" className="animate-fade-rise font-normal leading-[0.95] tracking-[-2.46px] text-[hsl(var(--foreground))] text-5xl sm:text-7xl md:text-8xl" style={{ fontFamily: "'Instrument Serif', serif" }}>
+              Where <em className="not-italic text-[hsl(var(--muted-foreground))]">dreams</em> rise <em className="not-italic text-[hsl(var(--muted-foreground))]">through the silence.</em>
+            </h1>
+            <p className="animate-fade-rise-delay mx-auto mt-8 max-w-2xl text-base leading-relaxed text-[hsl(var(--muted-foreground))] sm:text-lg">
+              We&apos;re designing tools for deep thinkers, bold creators, and quiet rebels. Amid the chaos, we build digital spaces for sharp focus and inspired work.
+            </p>
+            <Link href={ctaHref} className="liquid-glass animate-fade-rise-delay-2 mt-12 inline-flex rounded-full px-14 py-5 text-base text-[hsl(var(--foreground))] transition-transform hover:scale-[1.03]">
+              Begin Journey
+            </Link>
+          </div>
         </div>
       </div>
-    </Section>
+    </section>
   );
 }
