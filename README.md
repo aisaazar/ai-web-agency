@@ -7,7 +7,7 @@ the docs win and the code is a bug.
 
 | Document | Read it for |
 | --- | --- |
-| [PLAN-14-DAYS.md](docs/PLAN-14-DAYS.md) | build order and the acceptance line per day |
+| [DELIVERY-PLAN.md](docs/DELIVERY-PLAN.md) | active delivery deadline, acceptance line, and remaining pilot work |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | the ADR table (ADR-001 …) |
 | [DOMAIN-MODEL.md](docs/DOMAIN-MODEL.md) | tables, pipeline states, `build_hash` |
 | [CONTRACTS-AND-CONVENTIONS.md](docs/CONTRACTS-AND-CONVENTIONS.md) | repo layout, naming, versioning |
