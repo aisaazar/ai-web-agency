@@ -1,8 +1,8 @@
-# Delivery Plan ? Monday, October 5, 2026
+# Delivery Plan ? Sunday, October 4, 2026
 
 ## Delivery target
 
-The AI Web Agency is being prepared for handover on **Monday morning, October 5, 2026**.
+The AI Web Agency is being prepared for handover by **Sunday, October 4, 2026**.
 The `PLAN-14-DAYS.md` file is retained as historical build-order documentation; it is not the active deadline.
 
 ## Current release state
