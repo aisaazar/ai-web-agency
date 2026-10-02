@@ -53,23 +53,34 @@ for (const fragment of [
 
 for (const fragment of [
   'case "design": {',
-  '["health", "corporate", "warm"].includes(presetId)',
-  'preset_id: presetId',
+  "isDesignPresetId(presetId)",
+  "preset_id: presetId",
 ]) {
   if (!actionRoute.includes(fragment)) {
     throw new Error("design preset forwarding regression: missing " + fragment);
   }
 }
 
-for (const fragment of [
-  'name="preset_id"',
-  'value="health"',
-  'value="corporate"',
-  'value="warm"',
-  "Design preset",
-]) {
+// The action route must validate against the shared catalog rather than a second hardcoded copy
+// of the preset list, which is what used to let intake and design disagree.
+if (!/from\s+["'][^"']*lib\/design-presets["']/.test(actionRoute)) {
+  throw new Error("design preset validation regression: action route must use the shared catalog");
+}
+
+for (const fragment of ['name="preset_id"', "Design preset", "DESIGN_PRESET_LABELS"]) {
   if (!clientPage.includes(fragment)) {
     throw new Error("design preset selector regression: missing " + fragment);
+  }
+}
+
+// The catalog is the single source of truth for which presets exist and how they are labelled.
+const presetLib = readFileSync(
+  join(root, "apps", "dashboard", "src", "lib", "design-presets.ts"),
+  "utf8",
+);
+for (const fragment of ["DESIGN_PRESETS", "DESIGN_PRESET_LABELS", "health", "corporate", "warm"]) {
+  if (!presetLib.includes(fragment)) {
+    throw new Error("design preset catalog regression: missing " + fragment);
   }
 }
 
