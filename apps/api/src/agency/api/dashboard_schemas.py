@@ -1,6 +1,7 @@
 """Typed dashboard response contracts."""
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -119,6 +120,7 @@ class DashboardSiteVersionOut(BaseModel):
 class DashboardClientDetailOut(BaseModel):
     org_id: UUID
     client: DashboardClientOut
+    content_payload: dict[str, Any] | None = None
     facts: list[DashboardClientFactOut]
     artifacts: list[DashboardClientDetailArtifactOut]
     approvals: list[DashboardApprovalOut]

@@ -210,6 +210,7 @@ def test_dashboard_client_detail_is_tenant_scoped_and_traces_artifacts(tmp_path)
         }
     ]
     assert {item["type"] for item in body["artifacts"]} == {"business_facts", "content_model"}
+    assert body["content_payload"] == {"content_schema_version": "1.0.0"}
     assert body["approvals"][0]["gate"] == "CONTENT"
     assert body["site_versions"][0]["build_hash"] == "a" * 64
     assert body["deployments"][0]["status"] == "preview"

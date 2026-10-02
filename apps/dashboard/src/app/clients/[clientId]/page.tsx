@@ -55,13 +55,19 @@ function findArtifact(detail: Awaited<ReturnType<typeof fetchClientDetail>>, typ
   return detail.artifacts.find((item) => item.type === type);
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
 export default async function ClientDetailPage({ params, searchParams }: Props) {
   const { clientId } = await params;
   const query = await searchParams;
   const detail = await fetchClientDetail(clientId);
 
   const research = findArtifact(detail, "research_report");
-  const content = findArtifact(detail, "content_model");
+  const contentArtifact = findArtifact(detail, "content_model");
   const design = findArtifact(detail, "design_plan");
   const build = findArtifact(detail, "site_build");
   const selectedPresetFact =
@@ -69,6 +75,15 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const selectedPreset: DesignPresetId = isDesignPresetId(selectedPresetFact)
     ? selectedPresetFact
     : "health";
+  const content = asRecord(detail.contentPayload);
+  const contentMeta = asRecord(content?.meta);
+  const contentSite = asRecord(content?.site);
+  const contentHero = asRecord(content?.hero);
+  const contentCompliance = asRecord(content?.compliance);
+  const contentServices = asRecord(content?.services);
+  const serviceItems = Array.isArray(contentServices?.items)
+    ? contentServices.items.map(asRecord).filter((item): item is Record<string, unknown> => item !== null)
+    : [];
   const siteVersion = detail.siteVersions[0];
   const latestPreview = detail.deployments.find(
     (item) => item.environment === "preview" && item.siteVersionId === siteVersion?.id,
@@ -93,16 +108,16 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       action = <ActionForm action="generate-content" clientId={clientId} hidden={{ provider: "local" }}>Generate content with local AI</ActionForm>;
       break;
     case "CONTENT_COMPLETE":
-      if (content) action = <ActionForm action="approve-content" clientId={clientId} hidden={{ artifact_id: content.id }}>Approve content</ActionForm>;
+      if (contentArtifact) action = <ActionForm action="approve-content" clientId={clientId} hidden={{ artifact_id: contentArtifact.id }}>Approve content</ActionForm>;
       break;
     case "CONTENT_APPROVED":
-      if (content) action = <DesignActionForm clientId={clientId} contentArtifactId={content.id} selectedPreset={selectedPreset} />;
+      if (contentArtifact) action = <DesignActionForm clientId={clientId} contentArtifactId={contentArtifact.id} selectedPreset={selectedPreset} />;
       break;
     case "DESIGN_APPROVED":
-      if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;
+      if (contentArtifact && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: contentArtifact.id, design_artifact_id: design.id }}>Build site</ActionForm>;
       break;
     case "BUILD_FAILED":
-      if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Retry failed build</ActionForm>;
+      if (contentArtifact && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: contentArtifact.id, design_artifact_id: design.id }}>Retry failed build</ActionForm>;
       break;
     case "FAILED":
       action = <ActionForm action="generate-content" clientId={clientId} hidden={{ provider: "local" }}>Retry failed content generation</ActionForm>;
@@ -151,6 +166,43 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
         {detail.approvals.length === 0 ? <p className="muted">No approvals yet.</p> : null}
       </div></section>
     </div>
+
+    {content ? (
+      <section className="card section">
+        <div className="detailHeader">
+          <div>
+            <h2 className="sectionTitle">Content review</h2>
+            <div className="muted">Review the exact active content artifact before design or publication.</div>
+          </div>
+          <span className="badge">{String(contentMeta?.is_fixture) === "true" ? "FIXTURE" : "CLIENT CONTENT"}</span>
+        </div>
+        <div className="grid two">
+          <div>
+            <div className="muted">Site</div>
+            <strong>{String(contentSite?.name ?? "—")}</strong>
+            <p className="muted">{String(contentSite?.tagline ?? "")}</p>
+            <div className="muted">Hero headline</div>
+            <p>{String(contentHero?.headline ?? "—")}</p>
+          </div>
+          <div>
+            <div className="muted">Compliance</div>
+            <strong>{String(contentCompliance?.legal_review_status ?? "—")}</strong>
+            <p className="muted">Schema {String(content?.content_schema_version ?? "—")} · {serviceItems.length} services</p>
+            <div className="list">
+              {serviceItems.slice(0, 6).map((item, index) => (
+                <div className="row" key={String(item.id ?? index)}>
+                  <div><strong>{String(item.title ?? "Untitled service")}</strong><div className="muted">{String(item.summary ?? "")}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <details style={{ marginTop: 18 }}>
+          <summary>Inspect full content artifact JSON</summary>
+          <pre className="mono" style={{ overflowX: "auto", whiteSpace: "pre-wrap", marginTop: 12 }}>{JSON.stringify(content, null, 2)}</pre>
+        </details>
+      </section>
+    ) : null}
 
     <section className="card section"><h2 className="sectionTitle">Delivery</h2>
       <div className="grid two">

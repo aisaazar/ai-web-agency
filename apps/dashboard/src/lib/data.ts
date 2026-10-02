@@ -120,6 +120,7 @@ export interface DashboardSiteVersion {
 export interface DashboardClientDetail extends DashboardClient {
   liveUrl?: string;
   currentBuildHash?: string;
+  contentPayload?: Record<string, unknown>;
   facts: DashboardClientFact[];
   artifacts: DashboardClientDetailArtifact[];
   approvals: DashboardApproval[];
@@ -237,6 +238,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
       design_preset_id: string;
       created_at: string;
     }>;
+    content_payload?: Record<string, unknown> | null;
     deployments: Array<{
       id: string;
       site_version_id: string;
@@ -255,6 +257,7 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
     state: data.client.state,
     updatedAt: data.client.updated_at,
     liveUrl: data.client.live_url ?? undefined,
+    contentPayload: data.content_payload ?? undefined,
     currentBuildHash: data.client.current_build_hash ?? undefined,
     facts: data.facts.map((item) => ({
       id: item.id,

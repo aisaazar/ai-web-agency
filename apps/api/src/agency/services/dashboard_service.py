@@ -149,6 +149,14 @@ def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dic
 
     artifacts = [artifact for artifact in all_artifacts if belongs(artifact)]
     artifact_ids = {artifact.id for artifact in artifacts}
+    content_artifact = next(
+        (
+            artifact
+            for artifact in artifacts
+            if artifact.artifact_type == "content_model" and artifact.is_active
+        ),
+        None,
+    )
 
     approvals = list(
         session.scalars(
@@ -194,6 +202,7 @@ def get_client_detail(session: Session, *, org_id: UUID, client_id: UUID) -> dic
             "live_url": site.live_url if site else None,
             "current_build_hash": site.current_build_hash if site else None,
         },
+        "content_payload": content_artifact.payload_json if content_artifact else None,
         "facts": [
             {
                 "id": fact.id,
