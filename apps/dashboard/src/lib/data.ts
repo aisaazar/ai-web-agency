@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { cookies } from "next/headers.js";
+import { redirect } from "next/navigation.js";
 
 export type PipelineState =
   | "INTAKE" | "FACTS_EXTRACTED" | "FACTS_APPROVED"
@@ -141,7 +141,7 @@ const ORG_ID = process.env.AGENCY_ORG_ID;
  * broken. Every call goes through here so the failure carries the request, the status and the API
  * origin, and so `app/error.tsx` can recognise it as an API outage rather than a view bug.
  */
-async function agencyFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function agencyFetch(path: string, init: RequestInit = {}): Promise<Response> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { cache: "no-store", ...init });
