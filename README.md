@@ -51,6 +51,7 @@ npm run audit:secrets      # tracked files: credential shapes, real .env, secret
 npm run build:site         # tokens -> content gate -> next build -> sites/_template-base/out
 npm run validate:output    # prove the exported artefacts and self-hosted fonts exist
 npm run qa:smoke           # serve out/, crawl every route, axe scan for serious/critical issues
+npm run sales:demo:wittmann # build + validate a private prospect redesign under .artifacts/
 ```
 
 `PRODUCTION_BUILD=1` plus `CONTENT_FILE=<basename>` is how a real client is built; the reference

@@ -6,7 +6,7 @@ import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = path.join(root, "sites", "_template-base", "out");
+const outDir = path.resolve(root, process.env.SMOKE_OUT_DIR?.trim() || path.join("sites", "_template-base", "out"));
 const routes = ["/", "/leistungen", "/impressum", "/datenschutz"];
 const mime = { ".html": "text/html; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".xml": "application/xml" };
 

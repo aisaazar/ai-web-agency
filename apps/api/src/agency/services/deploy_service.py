@@ -30,6 +30,27 @@ REQUIRED_VALIDATION_CHECKS = frozenset({
 })
 
 
+#: Durable promotion state machine for production deployments (`Deploy.status`).
+#:
+#: A provider promotion is an *external* side effect: `local_static` re-points the served tree and
+#: Vercel re-points the production alias. That side effect cannot be rolled back with the database
+#: transaction, so a crash in between left the provider serving a build the database had never
+#: recorded. The fix is to make the intent durable *before* the side effect and reconcile afterwards.
+#:
+#: - ``promoting``: intent is committed. The provider may or may not have been promoted yet, so this
+#:   is the only state a crash can leave behind, and reconciliation converges it.
+#: - ``live``: the provider confirmed the promotion and this is the current live deployment.
+#: - ``superseded``: previously live, replaced by a newer live deployment.
+#: - ``promote_failed``: the provider refused the promotion; terminal, and never live.
+PROMOTION_PENDING = "promoting"
+PROMOTION_LIVE = "live"
+PROMOTION_SUPERSEDED = "superseded"
+PROMOTION_FAILED = "promote_failed"
+
+#: Statuses reconciliation is allowed to drive. Everything else is a settled state.
+RECONCILABLE_STATUSES = (PROMOTION_PENDING,)
+
+
 class DeployError(RuntimeError):
     pass
 
@@ -112,6 +133,90 @@ def _live_deploy(session: Session, *, org_id, site_id) -> Deploy | None:
         Deploy.environment == "production",
         Deploy.status == "live",
     ).order_by(Deploy.created_at.desc()))
+
+def _record_promotion_intent(
+    session: Session,
+    *,
+    org_id,
+    site_version_id,
+    provider_name: str,
+) -> Deploy:
+    """Commit a durable record that a production promotion is about to be attempted.
+
+    This is the durable half of the two-phase promotion. It is committed on its own, before the
+    provider is asked to promote anything, so that a crash at any later point leaves a
+    ``promoting`` row for reconciliation to converge instead of an invisible provider change that
+    the database has no record of. Committing the intent early is safe: at this point nothing is
+    live, the previous deployment is untouched, and the row is not yet a published state.
+    """
+    record = Deploy(
+        org_id=org_id,
+        site_version_id=site_version_id,
+        environment="production",
+        provider=provider_name,
+        status=PROMOTION_PENDING,
+        url=None,
+    )
+    session.add(record)
+    session.commit()
+    return record
+
+
+def _activate_live_deploy(
+    session: Session,
+    *,
+    org_id,
+    site: Site,
+    record: Deploy,
+    url: str,
+    build_hash: str,
+    audit_action: str,
+    audit_after: dict,
+) -> Deploy:
+    """Move an already-promoted deployment to live in one transaction.
+
+    The supersede, the new live row, the site pointer and the audit entry all land together, so a
+    reader never observes a site with no live deployment and never sees two. The caller has
+    already confirmed the provider promotion; this only records it.
+    """
+    _supersede_live_deploys(session, org_id=org_id, site_id=site.id)
+    record.status = PROMOTION_LIVE
+    record.url = url
+    session.flush()
+
+    site.current_build_hash = build_hash
+    site.live_url = url
+    site.status = "live"
+    record_audit(
+        session,
+        org_id=org_id,
+        actor="system",
+        action=audit_action,
+        entity_type="deploy",
+        entity_id=str(record.id),
+        after=audit_after,
+    )
+    session.commit()
+    return record
+
+
+def _fail_promotion(session: Session, record: Deploy, reason: str) -> None:
+    """Mark a promotion attempt as failed without touching the live deployment.
+
+    The previous known-good deployment stays live: nothing here supersedes anything, so a provider
+    rejection or an unrecoverable crash leaves the site serving what it was already serving.
+    """
+    record.status = PROMOTION_FAILED
+    record_audit(
+        session,
+        org_id=record.org_id,
+        actor="system",
+        action="deployment.promote_failed",
+        entity_type="deploy",
+        entity_id=str(record.id),
+        after={"reason": reason[:2000], "build_url": record.url},
+    )
+    session.commit()
 
 
 def _supersede_live_deploys(session: Session, *, org_id, site_id) -> None:
@@ -292,37 +397,42 @@ def publish_site(
         if deployer.name == "vercel" and preview_deploy.url
         else version.build_hash
     )
-    promoted = _as_deploy_error("publish", lambda: deployer.promote(promote_ref))
-    _supersede_live_deploys(session, org_id=org_id, site_id=site.id)
 
-    record = Deploy(
-        org_id=org_id,
-        site_version_id=version.id,
-        environment="production",
-        provider=promoted.provider,
-        status=promoted.status,
-        url=promoted.url,
-    )
-    session.add(record)
-    session.flush()
-
+    # Every precondition is checked *before* the provider is asked to change anything. The
+    # pipeline transition used to be validated after the promotion had already happened, so an
+    # invalid state produced a rejected request on top of an already-promoted provider.
     if not is_valid_transition(pipeline.state, "PUBLISHING"):
         raise DeployError(f"cannot publish from state {pipeline.state}")
-    pipeline.state = transition(pipeline.state, "PUBLISHING").to_state
-    pipeline.state = transition(pipeline.state, "LIVE").to_state
-    site.current_build_hash = version.build_hash
-    site.live_url = promoted.url
-    site.status = "live"
-    record_audit(
+
+    # Phase 1: durable intent, committed on its own before the external side effect.
+    record = _record_promotion_intent(
         session,
         org_id=org_id,
-        actor="system",
-        action="deployment.published",
-        entity_type="deploy",
-        entity_id=str(record.id),
-        after={"client_id": str(client_id), "build_hash": version.build_hash, "url": record.url},
+        site_version_id=version.id,
+        provider_name=deployer.name,
     )
-    return record
+
+    # Phase 2: the external promotion. A crash here leaves the `promoting` row for reconciliation.
+    try:
+        promoted = _as_deploy_error("publish", lambda: deployer.promote(promote_ref))
+    except DeployError as exc:
+        _fail_promotion(session, record, str(exc))
+        raise
+
+    # Phase 3: record the confirmed promotion. Superseding the previous live deployment happens in
+    # the same transaction as this one going live, so the site is never without a live build.
+    pipeline.state = transition(pipeline.state, "PUBLISHING").to_state
+    pipeline.state = transition(pipeline.state, "LIVE").to_state
+    return _activate_live_deploy(
+        session,
+        org_id=org_id,
+        site=site,
+        record=record,
+        url=promoted.url,
+        build_hash=version.build_hash,
+        audit_action="deployment.published",
+        audit_after={"client_id": str(client_id), "build_hash": version.build_hash, "url": promoted.url},
+    )
 
 
 def attach_domain(
@@ -453,31 +563,36 @@ def rollback_site(
         if target_deploy is None:
             raise DeployError("target Vercel deployment reference not found")
         rollback_ref = target_version.build_hash
-    promoted = _as_deploy_error(
-        "rollback", lambda: deployer.rollback(str(current_site.id), rollback_ref)
-    )
-    _supersede_live_deploys(session, org_id=org_id, site_id=current_site.id)
-    record = Deploy(
-        org_id=org_id,
-        site_version_id=target_version.id,
-        environment="production",
-        provider=promoted.provider,
-        status=promoted.status,
-        url=promoted.url,
-    )
-    session.add(record)
-    session.flush()
 
-    current_site.current_build_hash = target_version.build_hash
-    current_site.live_url = promoted.url
-    current_site.status = "live"
-    record_audit(
+    # Phase 1: durable intent, committed before the provider is asked to move production.
+    record = _record_promotion_intent(
         session,
         org_id=org_id,
-        actor="system",
-        action="deployment.rolled_back",
-        entity_type="deploy",
-        entity_id=str(record.id),
-        after={"client_id": str(client_id), "build_hash": target_version.build_hash, "url": record.url},
+        site_version_id=target_version.id,
+        provider_name=deployer.name,
     )
-    return record
+
+    # Phase 2: the external rollback. A crash here leaves the `promoting` row to reconcile.
+    try:
+        promoted = _as_deploy_error(
+            "rollback", lambda: deployer.rollback(str(current_site.id), rollback_ref)
+        )
+    except DeployError as exc:
+        _fail_promotion(session, record, str(exc))
+        raise
+
+    # Phase 3: the restored build becomes live and the replaced one is superseded, atomically.
+    return _activate_live_deploy(
+        session,
+        org_id=org_id,
+        site=current_site,
+        record=record,
+        url=promoted.url,
+        build_hash=target_version.build_hash,
+        audit_action="deployment.rolled_back",
+        audit_after={
+            "client_id": str(client_id),
+            "build_hash": target_version.build_hash,
+            "url": promoted.url,
+        },
+    )

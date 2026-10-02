@@ -43,7 +43,8 @@
     "dev:dashboard": "npm run dev --workspace @ai-web-agency/dashboard",
     "pilot:preflight": "node scripts/pilot-preflight.mjs",
     "pilot:prepare-content": "node scripts/prepare-pilot-content.mjs",
-    "sales:demo:wittmann": "node scripts/build-wittmann-demo.mjs"
+    "sales:demo:wittmann:content": "node scripts/build-wittmann-demo.mjs",
+    "sales:demo:wittmann": "node scripts/build-sales-demo.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

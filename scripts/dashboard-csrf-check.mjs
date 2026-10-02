@@ -127,4 +127,20 @@ for (const fragment of ["Agency API unavailable", "API_FAILURE"]) {
   }
 }
 
+const prospectsPage = readFileSync(join(root, "apps", "dashboard", "src", "app", "prospects", "page.tsx"), "utf8");
+for (const fragment of ['action={"/api/prospects/" + p.id + "/status"}', 'name="status"', 'name="note"']) {
+  if (!prospectsPage.includes(fragment)) {
+    throw new Error("prospect workflow regression: missing " + fragment);
+  }
+}
+const prospectStatusRoute = readFileSync(
+  join(root, "apps", "dashboard", "src", "app", "api", "prospects", "[prospectId]", "status", "route.ts"),
+  "utf8",
+);
+for (const fragment of ['method: "PATCH"', '"X-CSRF-Token": csrf', 'org_id=', "API%20is%20currently%20unavailable"]) {
+  if (!prospectStatusRoute.includes(fragment)) {
+    throw new Error("prospect status security regression: missing " + fragment);
+  }
+}
+
 console.log("dashboard-csrf-check: PASS");
