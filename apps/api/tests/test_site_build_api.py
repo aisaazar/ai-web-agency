@@ -19,6 +19,9 @@ def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
     import agency.services.site_build_service as build_module
 
     captured = {}
+    system_npm = tmp_path / "ProgramFiles" / "nodejs" / "npm.cmd"
+    system_npm.parent.mkdir(parents=True)
+    system_npm.write_text("@echo off", encoding="utf-8")
 
     class Result:
         returncode = 0
@@ -30,15 +33,21 @@ def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
         return Result()
 
     monkeypatch.setattr(build_module.subprocess, "run", fake_run)
-    monkeypatch.setattr(build_module.shutil, "which", lambda name, path=None: r"C:\Program Files\nodejs\npm.cmd")
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "ProgramFiles"))
     monkeypatch.setenv("COMSPEC", r"C:\Windows\System32\cmd.exe")
+    monkeypatch.setattr(
+        build_module.shutil,
+        "which",
+        lambda name, path=None: r"C:\Users\Admin\.cline\worktrees\polluted\node_modules\.bin\npm.cmd",
+    )
 
     passed, detail = build_module._run(["npm", "--version"], cwd=tmp_path, env={"PATH": "synthetic"})
 
     assert passed
     assert detail == "ok"
     assert captured["command"][:4] == [r"C:\Windows\System32\cmd.exe", "/d", "/s", "/c"]
-    assert captured["command"][4] == r'"C:\Program Files\nodejs\npm.cmd" --version'
+    assert captured["command"][4] == build_module.subprocess.list2cmdline([str(system_npm), "--version"])
+
 
 
 def _fake_persist_build_bundle(build_hash):
