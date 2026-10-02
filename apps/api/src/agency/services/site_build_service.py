@@ -7,7 +7,15 @@ import json
 import os
 import shutil
 import subprocess
+from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
+from time import monotonic, sleep
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,6 +44,48 @@ BUILDABLE_STATES = frozenset({"DESIGN_APPROVED", "BUILD_FAILED"})
 REPO_ROOT = Path(__file__).resolve().parents[5]
 TEMPLATE_ROOT = REPO_ROOT / "sites" / "_template-base"
 BUILD_ROOT = REPO_ROOT / ".artifacts" / "builds"
+BUILD_LOCK_PATH = REPO_ROOT / ".artifacts" / "template-build.lock"
+BUILD_LOCK_TIMEOUT_SECONDS = 300
+
+
+@contextmanager
+def _template_build_lock():
+    """Serialize processes that mutate the shared template build workspace."""
+    BUILD_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with BUILD_LOCK_PATH.open("a+b") as handle:
+        if os.name == "nt" and handle.seek(0, 2) == 0:
+            handle.write(b"0")
+            handle.flush()
+        handle.seek(0)
+        started = monotonic()
+        while True:
+            try:
+                if os.name == "nt":
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError as exc:
+                if monotonic() - started >= BUILD_LOCK_TIMEOUT_SECONDS:
+                    raise SiteBuildError("timed out waiting for the shared template build lock") from exc
+                sleep(0.25)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            if os.name == "nt":
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _serialize_template_build(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        with _template_build_lock():
+            return func(*args, **kwargs)
+
+    return wrapped
 
 
 def _build_hash(content: Artifact, design: Artifact) -> str:
@@ -123,16 +173,15 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, s
                     executable = resolved
 
     args = [executable, *command[1:]]
-    # Windows .cmd/.bat launchers are shell scripts, not PE executables. Python's
-    # CreateProcess path therefore needs cmd.exe explicitly instead of invoking npm.cmd directly.
+    # Windows npm.cmd is a batch launcher. Invoke npm's CLI through node.exe directly
+    # so CreateProcess never has to parse nested cmd.exe quoting for "Program Files".
     if os.name == "nt" and executable.lower().endswith((".cmd", ".bat")):
-        command = [
-            os.environ.get("COMSPEC", "cmd.exe"),
-            "/d",
-            "/s",
-            "/c",
-            subprocess.list2cmdline(args),
-        ]
+        node_executable = Path(executable).with_name("node.exe")
+        npm_cli = Path(executable).parent / "node_modules" / "npm" / "bin" / "npm-cli.js"
+        if node_executable.is_file() and npm_cli.is_file():
+            command = [str(node_executable), str(npm_cli), *command[1:]]
+        else:
+            command = args
     else:
         command = args
     result = subprocess.run(
@@ -141,9 +190,11 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, s
         env=env,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=180,
     )
-    detail = (result.stdout + "\n" + result.stderr).strip()
+    detail = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
     return result.returncode == 0, detail[-2000:]
 
 
@@ -172,6 +223,7 @@ def _fail_build(
     )
 
 
+@_serialize_template_build
 def build_site(session: Session, *, org_id, client_id, content_artifact_id, design_artifact_id) -> SiteVersion:
     pipeline = PipelineRepository(session, org_id).latest_for_client(client_id)
     content = session.scalar(select(Artifact).where(

@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 from uuid import UUID
 
@@ -15,13 +18,19 @@ from agency.db.workflow_models import PipelineRun
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
+def test_run_uses_system_npm_cli_on_windows(monkeypatch, tmp_path):
     import agency.services.site_build_service as build_module
 
     captured = {}
-    system_npm = tmp_path / "ProgramFiles" / "nodejs" / "npm.cmd"
-    system_npm.parent.mkdir(parents=True)
+    node_dir = tmp_path / "ProgramFiles" / "nodejs"
+    node_dir.mkdir(parents=True)
+    system_npm = node_dir / "npm.cmd"
+    node_exe = node_dir / "node.exe"
+    npm_cli = node_dir / "node_modules" / "npm" / "bin" / "npm-cli.js"
     system_npm.write_text("@echo off", encoding="utf-8")
+    node_exe.write_text("synthetic", encoding="utf-8")
+    npm_cli.parent.mkdir(parents=True)
+    npm_cli.write_text("synthetic", encoding="utf-8")
 
     class Result:
         returncode = 0
@@ -30,11 +39,11 @@ def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
 
     def fake_run(command, **kwargs):
         captured["command"] = command
+        captured["kwargs"] = kwargs
         return Result()
 
     monkeypatch.setattr(build_module.subprocess, "run", fake_run)
     monkeypatch.setenv("ProgramFiles", str(tmp_path / "ProgramFiles"))
-    monkeypatch.setenv("COMSPEC", r"C:\Windows\System32\cmd.exe")
     monkeypatch.setattr(
         build_module.shutil,
         "which",
@@ -45,8 +54,43 @@ def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
 
     assert passed
     assert detail == "ok"
-    assert captured["command"][:4] == [r"C:\Windows\System32\cmd.exe", "/d", "/s", "/c"]
-    assert captured["command"][4] == build_module.subprocess.list2cmdline([str(system_npm), "--version"])
+    assert captured["command"] == [str(node_exe), str(npm_cli), "--version"]
+    assert captured["kwargs"]["encoding"] == "utf-8"
+    assert captured["kwargs"]["errors"] == "replace"
+
+
+def test_template_build_lock_is_process_exclusive(monkeypatch, tmp_path):
+    import agency.services.site_build_service as build_module
+
+    lock_path = tmp_path / "template-build.lock"
+    monkeypatch.setattr(build_module, "BUILD_LOCK_PATH", lock_path)
+    child_script = """
+import sys
+import time
+from pathlib import Path
+from agency.services import site_build_service as build
+
+build.BUILD_LOCK_PATH = Path(sys.argv[1])
+with build._template_build_lock():
+    print("locked", flush=True)
+    time.sleep(0.75)
+"""
+    child = subprocess.Popen(
+        [sys.executable, "-c", child_script, str(lock_path)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert child.stdout is not None
+    assert child.stdout.readline().strip() == "locked"
+
+    started = time.monotonic()
+    with build_module._template_build_lock():
+        waited = time.monotonic() - started
+
+    stdout, stderr = child.communicate(timeout=5)
+    assert child.returncode == 0, stderr or stdout
+    assert waited >= 0.5
 
 
 
