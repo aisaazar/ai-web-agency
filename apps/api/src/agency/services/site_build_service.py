@@ -175,16 +175,22 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         raise SiteBuildError("design artifact does not belong to client")
 
     pipeline.state = transition(pipeline.state, "BUILDING").to_state
+    design_preset_id = str(design.payload_json["design_preset_id"])
     site = session.scalar(select(Site).where(Site.org_id == org_id, Site.client_id == client_id))
     if site is None:
         site = Site(
             org_id=org_id,
             client_id=client_id,
             template_id="_template-base",
-            design_preset_id=str(design.payload_json["design_preset_id"]),
+            design_preset_id=design_preset_id,
         )
         session.add(site)
         session.flush()
+    elif site.design_preset_id != design_preset_id:
+        # A rebuild after the operator changed the style must not leave the site row claiming the
+        # old preset: `site_versions` and the build artifact are derived from the design artifact,
+        # so the site row has to agree with them.
+        site.design_preset_id = design_preset_id
 
     build_hash = _build_hash(content, design)
     version = session.scalar(select(SiteVersion).where(
@@ -200,7 +206,7 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
             content_artifact_id=content.id,
             content_schema_version=content.schema_version,
             template_version=str(design.payload_json["template_version"]),
-            design_preset_id=str(design.payload_json["design_preset_id"]),
+            design_preset_id=design_preset_id,
         )
         session.add(version)
         session.flush()
@@ -219,7 +225,7 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
     env["CONTENT_FILE"] = content_file.name
     env["NEXT_PUBLIC_AGENCY_CLIENT_ID"] = str(client_id)
     env["NEXT_PUBLIC_AGENCY_SITE_ID"] = str(site.id)
-    env["DESIGN_PRESET_ID"] = str(design.payload_json["design_preset_id"])
+    env["DESIGN_PRESET_ID"] = design_preset_id
     generated_tokens_path = TEMPLATE_ROOT / "src" / "styles" / "design-tokens.generated.css"
     original_tokens = generated_tokens_path.read_bytes() if generated_tokens_path.is_file() else None
     public_api_url = (

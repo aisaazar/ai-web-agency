@@ -15,7 +15,15 @@ class DesignRequest(BaseModel):
     org_id: UUID
     client_id: UUID
     content_artifact_id: UUID
-    preset_id: str = Field(default="health", min_length=1, max_length=100)
+    preset_id: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description=(
+            "Explicit design preset override. When omitted the design operation resolves the "
+            "client's selected_preset_id intake fact (falling back to the default preset)."
+        ),
+    )
     template_version: str = Field(default="1.0.0", min_length=1, max_length=64)
 
 

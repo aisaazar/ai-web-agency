@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { fetchClientDetail } from "../../../lib/data";
+import { isDesignPresetId, type DesignPresetId } from "../../../lib/design-presets";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ function ActionForm({ action, clientId, hidden = {}, children }: {
   );
 }
 
-function DesignActionForm({ clientId, contentArtifactId, selectedPreset }: { clientId: string; contentArtifactId: string; selectedPreset: "health" | "corporate" | "warm" }) {
+function DesignActionForm({ clientId, contentArtifactId, selectedPreset }: { clientId: string; contentArtifactId: string; selectedPreset: DesignPresetId }) {
   return (
     <form action={`/api/clients/${clientId}/action`} method="post">
       <input type="hidden" name="action" value="design" />
@@ -63,12 +64,17 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const content = findArtifact(detail, "content_model");
   const design = findArtifact(detail, "design_plan");
   const build = findArtifact(detail, "site_build");
-  const selectedPresetFact = detail.facts.find((fact) => fact.key === "selected_preset_id")?.value;
-  const selectedPreset = (selectedPresetFact === "corporate" || selectedPresetFact === "warm" ? selectedPresetFact : "health") as "health" | "corporate" | "warm";
+  const selectedPresetFact =
+    detail.facts.find((fact) => fact.key === "selected_preset_id")?.value ?? "";
+  const selectedPreset: DesignPresetId = isDesignPresetId(selectedPresetFact)
+    ? selectedPresetFact
+    : "health";
   const siteVersion = detail.siteVersions[0];
   const latestPreview = detail.deployments.find(
     (item) => item.environment === "preview" && item.siteVersionId === siteVersion?.id,
   );
+  const previewLabel =
+    latestPreview && siteVersion ? `Preview · ${siteVersion.designPresetId} design` : "Preview";
   const latestProduction = detail.deployments.find(
     (item) => item.environment === "production",
   );
@@ -148,7 +154,11 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
 
     <section className="card section"><h2 className="sectionTitle">Delivery</h2>
       <div className="grid two">
-        <div><div className="muted">Current build</div><div className="mono">{detail.currentBuildHash ?? "—"}</div></div>
+        <div>
+          <div className="muted">Current build</div>
+          <div className="mono">{detail.currentBuildHash ?? "—"}</div>
+          {siteVersion ? <div className="muted">Design preset · {siteVersion.designPresetId}</div> : null}
+        </div>
         <div>
           <div className="muted">Latest production deployment</div>
           <div>{latestProduction?.url || "—"}</div>
@@ -159,7 +169,7 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
           ) : null}
         </div>
       </div>
-      {latestPreview ? <div className="previewRow"><div><div className="muted">Preview</div><a href={latestPreview.url} target="_blank" rel="noreferrer">{latestPreview.url}</a></div><span className="badge">{latestPreview.status}</span></div> : null}
+      {latestPreview ? <div className="previewRow"><div><div className="muted">{previewLabel}</div><a href={latestPreview.url} target="_blank" rel="noreferrer">{latestPreview.url}</a></div><span className="badge">{latestPreview.status}</span></div> : null}
     </section>
 
     {detail.state === "LIVE" ? (

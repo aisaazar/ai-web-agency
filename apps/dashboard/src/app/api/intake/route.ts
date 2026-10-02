@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDesignPresetId } from "../../../lib/design-presets";
+
 const API_BASE_URL =
   process.env.AGENCY_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
   const validFacts = facts.filter((fact): fact is NonNullable<typeof fact> => fact !== null);
   const presetId = String(form.get("preset_id") ?? "health").trim();
-  if (!["health", "corporate", "warm"].includes(presetId)) {
+  if (!isDesignPresetId(presetId)) {
     return NextResponse.json({ detail: "Invalid design preset" }, { status: 400 });
   }
 

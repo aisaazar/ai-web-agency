@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { isDesignPresetId, type DesignPresetId } from "../../../lib/design-presets";
+
 export const dynamic = "force-dynamic";
 
 type Props = {
@@ -8,8 +10,9 @@ type Props = {
 
 export default async function NewClientPage({ searchParams }: Props) {
   const query = await searchParams;
-  const selectedPreset = ["health", "corporate", "warm"].includes(query.preset ?? "")
-    ? query.preset!
+  const requestedPreset = query.preset ?? "";
+  const selectedPreset: DesignPresetId = isDesignPresetId(requestedPreset)
+    ? requestedPreset
     : "health";
 
   return (
