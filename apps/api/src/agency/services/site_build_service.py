@@ -103,17 +103,36 @@ def _build_environment() -> dict[str, str]:
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, str]:
     executable = command[0]
-    if executable == "npm" and env.get("AGENCY_NPM_COMMAND"):
-        executable = env["AGENCY_NPM_COMMAND"]
-    elif executable == "npm" and shutil.which(executable, path=env.get("PATH")) is None:
-        program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432") or "C:/Program Files"
-        candidates = [
-            Path(program_files) / "nodejs" / "npm.cmd",
-            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "nodejs" / "npm.cmd",
-            Path(os.environ.get("APPDATA", "")) / "npm" / "npm.cmd",
+    if executable == "npm":
+        configured = env.get("AGENCY_NPM_COMMAND")
+        if configured:
+            executable = configured
+        else:
+            resolved = shutil.which("npm.cmd" if os.name == "nt" else "npm", path=env.get("PATH"))
+            if resolved:
+                executable = resolved
+            else:
+                program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432") or "C:/Program Files"
+                candidates = [
+                    Path(program_files) / "nodejs" / "npm.cmd",
+                    Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "nodejs" / "npm.cmd",
+                    Path(os.environ.get("APPDATA", "")) / "npm" / "npm.cmd",
+                ]
+                executable = next((str(path) for path in candidates if path.is_file()), executable)
+
+    args = [executable, *command[1:]]
+    # Windows .cmd/.bat launchers are shell scripts, not PE executables. Python's
+    # CreateProcess path therefore needs cmd.exe explicitly instead of invoking npm.cmd directly.
+    if os.name == "nt" and executable.lower().endswith((".cmd", ".bat")):
+        command = [
+            os.environ.get("COMSPEC", "cmd.exe"),
+            "/d",
+            "/s",
+            "/c",
+            subprocess.list2cmdline(args),
         ]
-        executable = next((str(path) for path in candidates if path.is_file()), executable)
-    command = [executable, *command[1:]]
+    else:
+        command = args
     result = subprocess.run(
         command,
         cwd=cwd,

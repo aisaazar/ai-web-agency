@@ -15,6 +15,31 @@ from agency.db.workflow_models import PipelineRun
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
+def test_run_wraps_windows_npm_cmd_for_createprocess(monkeypatch, tmp_path):
+    import agency.services.site_build_service as build_module
+
+    captured = {}
+
+    class Result:
+        returncode = 0
+        stdout = "ok"
+        stderr = ""
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return Result()
+
+    monkeypatch.setattr(build_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(build_module.shutil, "which", lambda name, path=None: r"C:\Program Files\nodejs\npm.cmd")
+    monkeypatch.setenv("COMSPEC", r"C:\Windows\System32\cmd.exe")
+
+    passed, detail = build_module._run(["npm", "--version"], cwd=tmp_path, env={"PATH": "synthetic"})
+
+    assert passed
+    assert detail == "ok"
+    assert captured["command"][:4] == [r"C:\Windows\System32\cmd.exe", "/d", "/s", "/c"]
+    assert captured["command"][4] == r'"C:\Program Files\nodejs\npm.cmd" --version'
+
 
 def _fake_persist_build_bundle(build_hash):
     destination = REPO_ROOT / ".artifacts" / "builds" / build_hash
