@@ -108,17 +108,19 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, s
         if configured:
             executable = configured
         else:
-            resolved = shutil.which("npm.cmd" if os.name == "nt" else "npm", path=env.get("PATH"))
-            if resolved:
-                executable = resolved
+            program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432") or "C:/Program Files"
+            candidates = [
+                Path(program_files) / "nodejs" / "npm.cmd",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "nodejs" / "npm.cmd",
+                Path(os.environ.get("APPDATA", "")) / "npm" / "npm.cmd",
+            ]
+            system_npm = next((str(path) for path in candidates if path.is_file()), None)
+            if system_npm:
+                executable = system_npm
             else:
-                program_files = os.environ.get("ProgramFiles") or os.environ.get("ProgramW6432") or "C:/Program Files"
-                candidates = [
-                    Path(program_files) / "nodejs" / "npm.cmd",
-                    Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "nodejs" / "npm.cmd",
-                    Path(os.environ.get("APPDATA", "")) / "npm" / "npm.cmd",
-                ]
-                executable = next((str(path) for path in candidates if path.is_file()), executable)
+                resolved = shutil.which("npm.cmd" if os.name == "nt" else "npm", path=env.get("PATH"))
+                if resolved:
+                    executable = resolved
 
     args = [executable, *command[1:]]
     # Windows .cmd/.bat launchers are shell scripts, not PE executables. Python's
