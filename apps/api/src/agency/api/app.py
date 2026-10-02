@@ -85,6 +85,33 @@ def create_app(database_url: str | None = None) -> FastAPI:
         response.headers["X-Request-ID"] = request_id
         return response
 
+    @app.middleware("http")
+    async def commit_db_transaction(request: Request, call_next):
+        response = await call_next(request)
+        sessions = getattr(request.state, "db_sessions", [])
+        if response.status_code >= 500:
+            for session in sessions:
+                if session.info.get("api_transaction_closed") or session.info.get("api_transaction_failed"):
+                    continue
+                session.rollback()
+                session.info["api_transaction_failed"] = True
+                session.info.pop("after_commit", None)
+            return response
+        try:
+            for session in sessions:
+                if session.info.get("api_transaction_closed") or session.info.get("api_transaction_failed") or session.info.get("api_transaction_committed"):
+                    continue
+                session.commit()
+                session.info["api_transaction_committed"] = True
+        except Exception:
+            for session in sessions:
+                if not session.info.get("api_transaction_closed"):
+                    session.rollback()
+                    session.info["api_transaction_failed"] = True
+                    session.info.pop("after_commit", None)
+            raise
+        return response
+
     @app.exception_handler(Exception)
     async def unhandled_exception(request: Request, exc: Exception):
         request_id = getattr(request.state, "request_id", str(uuid4()))
