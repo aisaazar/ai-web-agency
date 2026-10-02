@@ -84,4 +84,32 @@ for (const fragment of ["DESIGN_PRESETS", "DESIGN_PRESET_LABELS", "health", "cor
   }
 }
 
+// Dashboard server components read the agency API through one helper. Without it each call site
+// throws Next's raw "fetch failed" on an outage, which `app/error.tsx` cannot recognise as an API
+// problem, and an operator sees "Dashboard error" instead of "Agency API unavailable".
+const dataLib = readFileSync(join(root, "apps", "dashboard", "src", "lib", "data.ts"), "utf8");
+if (!dataLib.includes("async function agencyFetch(")) {
+  throw new Error("dashboard API access regression: lib/data.ts must centralize API calls in agencyFetch");
+}
+for (const path of ["/v1/dashboard/overview", "/v1/deploys/logs", "/v1/dashboard/llm-cost"]) {
+  if (!dataLib.includes(`agencyFetch(\n    \`${path}`) && !dataLib.includes(`agencyFetch("${path}`) && !dataLib.includes(`agencyFetch(\`${path}`)) {
+    throw new Error(`dashboard API access regression: ${path} does not go through agencyFetch`);
+  }
+}
+// /v1/audit deliberately probes the raw response first so a non-owner's 403 can become an empty
+// state instead of an error boundary; enforce that exception rather than weakening the helper.
+const auditStart = dataLib.indexOf("const auditPath =");
+const auditEnd = dataLib.indexOf("\n\n  const data = await response.json()", auditStart);
+const auditBlock = dataLib.slice(auditStart, auditEnd);
+if (!auditBlock.includes("probe = await fetch(") || !auditBlock.includes("probe?.status === 403")) {
+  throw new Error("dashboard audit authorization regression: /v1/audit must preserve the explicit 403 probe");
+}
+// The error boundary must still distinguish an API outage from a bug in the view.
+const errorBoundary = readFileSync(join(root, "apps", "dashboard", "src", "app", "error.tsx"), "utf8");
+for (const fragment of ["Agency API unavailable", "API_FAILURE"]) {
+  if (!errorBoundary.includes(fragment)) {
+    throw new Error("dashboard error boundary regression: missing " + fragment);
+  }
+}
+
 console.log("dashboard-csrf-check: PASS");

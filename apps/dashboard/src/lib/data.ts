@@ -133,6 +133,38 @@ const API_BASE_URL =
   "http://localhost:8000";
 const ORG_ID = process.env.AGENCY_ORG_ID;
 
+/**
+ * Fetch the agency API as the signed-in operator.
+ *
+ * A server component that throws on an unreachable API currently surfaces Next's raw
+ * "fetch failed", which tells the operator nothing about whether the API is down or the view is
+ * broken. Every call goes through here so the failure carries the request, the status and the API
+ * origin, and so `app/error.tsx` can recognise it as an API outage rather than a view bug.
+ */
+async function agencyFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { cache: "no-store", ...init });
+  } catch (cause) {
+    throw new Error(
+      `Agency API request failed (unreachable at ${API_BASE_URL}${path}): ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+    );
+  }
+  if (response.status === 401) {
+    redirect("/login");
+  }
+  if (!response.ok) {
+    // Keep the upstream detail: "404" and "500" mean very different things to an operator.
+    const detail = (await response.text().catch(() => "")).slice(0, 300);
+    throw new Error(
+      `Agency API request failed with status ${response.status} for ${path}${detail ? `: ${detail}` : ""}`,
+    );
+  }
+  return response;
+}
+
 type DashboardOverview = {
   clients: Array<{
     id: string;
@@ -176,20 +208,10 @@ export async function fetchClientDetail(clientId: string): Promise<DashboardClie
     throw new Error("AGENCY_ORG_ID is required for dashboard API access");
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/v1/dashboard/clients/${encodeURIComponent(clientId)}?org_id=${encodeURIComponent(ORG_ID)}`,
-    {
-      cache: "no-store",
-      headers: { Cookie: `agency_session=${sessionCookie}` },
-    },
+  const response = await agencyFetch(
+    `/v1/dashboard/clients/${encodeURIComponent(clientId)}?org_id=${encodeURIComponent(ORG_ID)}`,
+    { headers: { Cookie: `agency_session=${sessionCookie}` } },
   );
-
-  if (response.status === 401) {
-    redirect("/login");
-  }
-  if (!response.ok) {
-    throw new Error(`Client detail request failed: ${response.status}`);
-  }
 
   const data = await response.json() as {
     client: {
@@ -322,9 +344,8 @@ export async function fetchDeploymentLogs(clientId: string, deployId: string): P
   if (!csrfCookie) throw new Error("agency_csrf cookie is required for dashboard API access");
   if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
 
-  const response = await fetch(API_BASE_URL + "/v1/deploys/logs", {
+  const response = await agencyFetch("/v1/deploys/logs", {
     method: "POST",
-    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       Cookie: "agency_session=" + sessionCookie + "; agency_csrf=" + csrfCookie,
@@ -332,9 +353,6 @@ export async function fetchDeploymentLogs(clientId: string, deployId: string): P
     },
     body: JSON.stringify({ org_id: ORG_ID, client_id: clientId, deploy_id: deployId }),
   });
-
-  if (response.status === 401) redirect("/login");
-  if (!response.ok) throw new Error("Deployment logs request failed: " + response.status);
 
   const data = await response.json() as { logs?: string };
   return data.logs ?? "";
@@ -345,12 +363,10 @@ export async function fetchLLMCost(): Promise<DashboardLLMCost> {
   const sessionCookie = (await cookies()).get("agency_session")?.value;
   if (!sessionCookie) redirect("/login");
   if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
-  const response = await fetch(
-    `${API_BASE_URL}/v1/dashboard/llm-cost?org_id=${encodeURIComponent(ORG_ID)}`,
-    { cache: "no-store", headers: { Cookie: `agency_session=${sessionCookie}` } },
+  const response = await agencyFetch(
+    `/v1/dashboard/llm-cost?org_id=${encodeURIComponent(ORG_ID)}`,
+    { headers: { Cookie: `agency_session=${sessionCookie}` } },
   );
-  if (response.status === 401) redirect("/login");
-  if (!response.ok) throw new Error(`LLM cost request failed: ${response.status}`);
   const data = await response.json() as {
     org_id: string;
     budget_micros: number;
@@ -374,13 +390,21 @@ export async function fetchAuditLog(limit = 50): Promise<DashboardAuditEvent[]> 
   const sessionCookie = (await cookies()).get("agency_session")?.value;
   if (!sessionCookie) redirect("/login");
   if (!ORG_ID) throw new Error("AGENCY_ORG_ID is required for dashboard API access");
-  const response = await fetch(
-    `${API_BASE_URL}/v1/audit?org_id=${encodeURIComponent(ORG_ID)}&limit=${encodeURIComponent(limit)}`,
-    { cache: "no-store", headers: { Cookie: `agency_session=${sessionCookie}` } },
-  );
+  // A non-owner is not an error here: the audit trail is owner-only by policy, so an empty list
+  // is the correct answer rather than a failed page. Probe with a raw call so 403 can be answered
+  // before the shared helper turns every other non-2xx into a thrown error.
+  const auditPath = `/v1/audit?org_id=${encodeURIComponent(ORG_ID)}&limit=${encodeURIComponent(limit)}`;
+  const probe = await fetch(`${API_BASE_URL}${auditPath}`, {
+    cache: "no-store",
+    headers: { Cookie: `agency_session=${sessionCookie}` },
+  }).catch(() => null);
+  if (probe?.status === 403) return [];
+  const response = probe ?? await agencyFetch(auditPath, { headers: { Cookie: `agency_session=${sessionCookie}` } });
   if (response.status === 401) redirect("/login");
-  if (response.status === 403) return [];
-  if (!response.ok) throw new Error(`Audit request failed: ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).slice(0, 300);
+    throw new Error(`Agency API request failed with status ${response.status} for ${auditPath}${detail ? `: ${detail}` : ""}`);
+  }
   const data = await response.json() as Array<{
     id: string; actor: string; action: string; entity_type: string; entity_id: string;
     before?: Record<string, unknown> | null; after?: Record<string, unknown> | null;
@@ -407,20 +431,10 @@ export async function fetchDashboard(): Promise<DashboardDataAdapter> {
   if (!ORG_ID) {
     throw new Error("AGENCY_ORG_ID is required for dashboard API access");
   }
-  const response = await fetch(
-    `${API_BASE_URL}/v1/dashboard/overview?org_id=${encodeURIComponent(ORG_ID)}`,
-    {
-      cache: "no-store",
-      headers: sessionCookie ? { Cookie: `agency_session=${sessionCookie}` } : undefined,
-    },
+  const response = await agencyFetch(
+    `/v1/dashboard/overview?org_id=${encodeURIComponent(ORG_ID)}`,
+    { headers: { Cookie: `agency_session=${sessionCookie}` } },
   );
-
-  if (response.status === 401) {
-    redirect("/login");
-  }
-  if (!response.ok) {
-    throw new Error(`Dashboard API request failed: ${response.status}`);
-  }
 
   const data = await response.json() as DashboardOverview;
 

@@ -1,6 +1,7 @@
 "use client";
 
-const API_FAILURE = /request failed|failed to fetch|unavailable|econnrefused|etimedout/i;
+const API_FAILURE =
+  /request failed|failed to fetch|unavailable|econnrefused|etimedout|request timed out|internal server error|\b5\d\d\b/i;
 
 /**
  * Client-side boundary for the whole dashboard.
