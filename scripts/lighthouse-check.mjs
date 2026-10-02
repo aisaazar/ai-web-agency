@@ -63,7 +63,12 @@ const server = createServer(async (req, res) => {
 });
 
 await mkdir(artifactsDir, { recursive: true });
-await new Promise((resolve) => server.listen(4174, "127.0.0.1", resolve));
+// Bind an ephemeral port rather than a fixed one. A fixed port meant that anything already
+// listening - a stray dev server, a previous run that leaked, a parallel agent - failed this gate
+// with EADDRINUSE and rejected an otherwise perfectly good build.
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+const { port } = server.address();
+const baseUrl = `http://127.0.0.1:${port}`;
 
 const preset = (process.env.LIGHTHOUSE_PRESET || "desktop").trim().toLowerCase();
 if (!["desktop", "mobile"].includes(preset)) {
@@ -73,7 +78,7 @@ if (!["desktop", "mobile"].includes(preset)) {
 }
 
 const args = [
-  "lighthouse", "http://127.0.0.1:4174",
+  "lighthouse", baseUrl,
   "--output=json", "--output-path=" + reportPath,
   "--preset=" + preset,
   "--chrome-flags=--headless=new",

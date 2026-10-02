@@ -22,7 +22,10 @@ const server = createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end("not found"); }
 });
 
-await new Promise((resolve) => server.listen(4173, "127.0.0.1", resolve));
+// Bind an ephemeral port so an unrelated process already listening here cannot fail the gate.
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+const { port } = server.address();
+const baseUrl = `http://127.0.0.1:${port}`;
 const browser = await chromium.launch({ headless: true, executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" });
 const context = await browser.newContext();
 const page = await context.newPage();
@@ -38,7 +41,7 @@ try {
     // `load` still requires every local subresource to arrive, and the assertions that follow -
     // route 200, h1 present, every internal link resolving, axe clean, form wired - are what
     // this smoke actually proves.
-    const response = await page.goto(`http://127.0.0.1:4173${route}`, { waitUntil: "load" });
+    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: "load" });
     if (!response || !response.ok()) throw new Error(`${route} returned ${response?.status()}`);
     if (await page.locator("h1").first().count() === 0) throw new Error(`${route} has no h1`);
     for (const href of await page.locator("a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
@@ -47,11 +50,11 @@ try {
     }
   }
   for (const href of checkedLinks) {
-    const response = await page.goto(`http://127.0.0.1:4173${href}`, { waitUntil: "load" });
+    const response = await page.goto(`${baseUrl}${href}`, { waitUntil: "load" });
     if (!response || !response.ok()) throw new Error(`broken internal link: ${href} -> ${response?.status()}`);
   }
 
-  await page.goto("http://127.0.0.1:4173/", { waitUntil: "load" });
+  await page.goto(`${baseUrl}/`, { waitUntil: "load" });
   const axe = await new AxeBuilder({ page }).analyze();
   const severe = axe.violations.filter((item) => item.impact === "critical" || item.impact === "serious");
   if (severe.length) throw new Error(`a11y violations: ${severe.map((item) => item.id).join(",")}`);
