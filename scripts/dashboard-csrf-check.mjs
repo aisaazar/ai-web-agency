@@ -91,10 +91,25 @@ const dataLib = readFileSync(join(root, "apps", "dashboard", "src", "lib", "data
 if (!dataLib.includes("async function agencyFetch(")) {
   throw new Error("dashboard API access regression: lib/data.ts must centralize API calls in agencyFetch");
 }
-for (const path of ["/v1/dashboard/overview", "/v1/deploys/logs", "/v1/dashboard/llm-cost"]) {
-  if (!dataLib.includes(`agencyFetch(\n    \`${path}`) && !dataLib.includes(`agencyFetch("${path}`) && !dataLib.includes(`agencyFetch(\`${path}`)) {
-    throw new Error(`dashboard API access regression: ${path} does not go through agencyFetch`);
+// Every API the dashboard reads must still be addressed, and each read must go through the helper.
+// Call sites build their path differently (inline template, quoted literal, hoisted variable), so
+// this asserts the endpoint is requested at all plus a usage count, not string adjacency.
+for (const endpoint of [
+  "/v1/dashboard/overview",
+  "/v1/dashboard/clients/",
+  "/v1/dashboard/llm-cost",
+  "/v1/deploys/logs",
+]) {
+  if (!dataLib.includes(endpoint)) {
+    throw new Error(`dashboard API access regression: ${endpoint} is no longer requested`);
   }
+}
+const agencyFetchCalls = (dataLib.match(/agencyFetch\(/g) ?? []).length;
+// One definition plus one call per read endpoint.
+if (agencyFetchCalls < 5) {
+  throw new Error(
+    `dashboard API access regression: only ${agencyFetchCalls} agencyFetch usages; every API read must use it`,
+  );
 }
 // /v1/audit deliberately probes the raw response first so a non-owner's 403 can become an empty
 // state instead of an error boundary; enforce that exception rather than weakening the helper.
