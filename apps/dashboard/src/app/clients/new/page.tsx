@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { isDesignPresetId, type DesignPresetId } from "../../../lib/design-presets";
+import { DESIGN_PRESETS, DESIGN_PRESET_LABELS, isDesignPresetId, type DesignPresetId } from "../../../lib/design-presets";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function NewClientPage({ searchParams }: Props) {
           <label>Client name<input name="client_name" required maxLength={200} /></label>
           <label>Client slug<input name="client_slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={120} /></label>
           <label>Category<select name="category" defaultValue="dental"><option value="dental">Dental</option><option value="health">Health</option><option value="corporate">Corporate</option></select></label>
-          <label>Visual style<select name="preset_id" defaultValue={selectedPreset}><option value="health">Health / Praxis — clean medical</option><option value="corporate">Corporate / Professional — executive</option><option value="warm">Warm / Human — boutique</option></select><span className="muted">This selection is carried into the design stage.</span></label>
+          <label>Visual style<select name="preset_id" defaultValue={selectedPreset}>{DESIGN_PRESETS.map((preset) => (<option key={preset} value={preset}>{DESIGN_PRESET_LABELS[preset]}</option>))}</select><span className="muted">This selection is carried into the design stage.</span></label>
           <div className="formGrid">
             <label>Jurisdiction<input name="jurisdiction" defaultValue="DE" required maxLength={8} /></label>
             <label>Locale<input name="locale" defaultValue="de-DE" required maxLength={16} /></label>

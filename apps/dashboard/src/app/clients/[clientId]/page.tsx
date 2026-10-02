@@ -1,3 +1,5 @@
+import { DESIGN_PRESETS, DESIGN_PRESET_LABELS } from "../../../lib/design-presets";
+
 import Link from "next/link";
 import { fetchClientDetail } from "../../../lib/data";
 import { isDesignPresetId, type DesignPresetId } from "../../../lib/design-presets";
@@ -41,9 +43,9 @@ function DesignActionForm({ clientId, contentArtifactId, selectedPreset }: { cli
       <label>
         Design preset
         <select name="preset_id" defaultValue={selectedPreset}>
-          <option value="health">Health / Praxis</option>
-          <option value="corporate">Corporate / Professional</option>
-          <option value="warm">Warm / Human</option>
+          {DESIGN_PRESETS.map((preset) => (
+            <option key={preset} value={preset}>{DESIGN_PRESET_LABELS[preset]}</option>
+          ))}
         </select>
       </label>
       <button className="button" type="submit">Create design</button>

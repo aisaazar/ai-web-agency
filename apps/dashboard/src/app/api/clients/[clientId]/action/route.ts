@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDesignPresetId } from "../../../../../lib/design-presets";
+
 const API_BASE_URL =
   process.env.AGENCY_API_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -54,7 +56,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       break;
     case "design": {
       const presetId = String(form.get("preset_id") ?? "health").trim();
-      if (!["health", "corporate", "warm"].includes(presetId)) {
+      // Use the shared catalog rather than a local copy of the list: the intake route already
+      // validates against it, so a second hardcoded list here would let a preset be accepted at
+      // intake and then rejected at the design step.
+      if (!isDesignPresetId(presetId)) {
         return NextResponse.json({ detail: "Invalid design preset" }, { status: 400 });
       }
       path = "/v1/design";
