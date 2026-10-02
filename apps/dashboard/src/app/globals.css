@@ -387,6 +387,8 @@ th { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .04
 .templateCardBody h2 { margin: 3px 0 0; font-size: 18px; }
 .templateCardBody p { min-height: 62px; margin: 0; }
 .templateCardBody .button { width: 100%; }
+.templateCardActions { justify-content: stretch; gap: 8px; min-height: auto; padding: 0; border-bottom: 0; }
+.templateCardActions > * { flex: 1; }
 .templateTags { display: flex; flex-wrap: wrap; gap: 6px; }
 .templateTags span { padding: 5px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--muted); font-size: 10px; font-weight: 800; }
 .templateNote { display: flex; align-items: center; justify-content: space-between; gap: 20px; }

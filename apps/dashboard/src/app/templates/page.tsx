@@ -2,6 +2,8 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+const PREVIEW_BASE_URL = process.env.NEXT_PUBLIC_TEMPLATE_PREVIEW_URL ?? "http://localhost:3010";
+
 const templates = [
   {
     id: "health",
@@ -65,7 +67,10 @@ export default function TemplatesPage() {
               <div className="templateTags">
                 {template.tags.map((tag) => <span key={tag}>{tag}</span>)}
               </div>
-              <Link className="button" href={"/clients/new?preset=" + template.id}>Use this style</Link>
+              <div className="row templateCardActions">
+                <a className="button secondaryButton" href={PREVIEW_BASE_URL + "/preview/" + template.id} target="_blank" rel="noreferrer">Live preview</a>
+                <Link className="button" href={"/clients/new?preset=" + template.id}>Use this style</Link>
+              </div>
             </div>
           </article>
         ))}
