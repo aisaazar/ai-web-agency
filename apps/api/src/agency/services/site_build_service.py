@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from agency.db.models import Artifact, BuildValidation, Site, SiteVersion
 from agency.domain.claims_policy import assert_claims_allowed
 from agency.domain.content_model import ContentModel
+from agency.providers.deploy import publish_directory_atomically
 from agency.repositories import PipelineRepository
 from agency.services.artifact_binding import belongs_to_client
 from agency.services.audit_service import record_audit
@@ -45,7 +46,15 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 TEMPLATE_ROOT = REPO_ROOT / "sites" / "_template-base"
 BUILD_ROOT = REPO_ROOT / ".artifacts" / "builds"
 BUILD_LOCK_PATH = REPO_ROOT / ".artifacts" / "template-build.lock"
-BUILD_LOCK_TIMEOUT_SECONDS = 300
+
+# One build runs four gated commands in sequence (next build, smoke, seo, perf), each bounded by
+# COMMAND_TIMEOUT_SECONDS. A lock that expires sooner than the work it serializes would fail a
+# second, healthy request with a spurious "timed out waiting for the shared template build lock"
+# while the first build was still progressing normally, so the wait budget is derived from the
+# commands it guards and stays configurable for slower pilot hardware.
+COMMAND_TIMEOUT_SECONDS = 180
+BUILD_COMMANDS_PER_BUILD = 4
+BUILD_LOCK_TIMEOUT_SECONDS = COMMAND_TIMEOUT_SECONDS * BUILD_COMMANDS_PER_BUILD + 60
 
 
 @contextmanager
@@ -121,15 +130,18 @@ def _rows(org_id, site_version_id, checks: list[ValidationResult]) -> list[Build
 
 
 def _persist_build_bundle(build_hash: str) -> Path:
+    """Freeze the template's export output as the immutable bundle for `build_hash`.
+
+    Staged and moved into place: `build_site` mints the `site_build` artifact straight after this
+    call, so a copy interrupted by a timeout or a killed process must never be reachable under a
+    build_hash that the database already considers publishable.
+    """
     source = TEMPLATE_ROOT / "out"
     if not source.is_dir():
         raise SiteBuildError("site build output directory does not exist")
-    BUILD_ROOT.mkdir(parents=True, exist_ok=True)
-    destination = BUILD_ROOT / build_hash
-    if destination.exists():
-        shutil.rmtree(destination)
-    shutil.copytree(source, destination)
-    return destination
+    if not (source / "index.html").is_file():
+        raise SiteBuildError("site build output has no index.html")
+    return publish_directory_atomically(source, BUILD_ROOT / build_hash)
 
 
 _SECRET_ENV_MARKERS = ("API_KEY", "_TOKEN", "_SECRET", "PASSWORD", "_CREDENTIAL")
@@ -149,6 +161,20 @@ def _build_environment() -> dict[str, str]:
             env[key] = value
     env["PRODUCTION_BUILD"] = "1"
     return env
+
+
+def _decode_stream(value) -> str:
+    """Normalize captured output that may arrive as bytes, str, or None.
+
+    `TimeoutExpired.stdout` is bytes when the process was captured in binary mode and str
+    otherwise; `errors="replace"` is what keeps a Windows console code page or a truncated
+    multibyte sequence from turning a build failure into a UnicodeDecodeError.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
 
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, str]:
@@ -184,17 +210,32 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[bool, s
             command = args
     else:
         command = args
-    result = subprocess.run(
-        command,
-        cwd=cwd,
-        env=env,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=180,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        # A hung Next build is a build failure with a diagnosis, not an unhandled exception that
+        # escapes as an opaque 500. `subprocess.run` has already killed the direct child; report
+        # the command and the budget so the operator can tell a slow machine from a stuck build.
+        return False, (
+            f"command timed out after {COMMAND_TIMEOUT_SECONDS}s: {' '.join(command)}"
+            + (f"\n{_decode_stream(exc.stdout)}" if exc.stdout else "")
+        )
+    except OSError as exc:
+        # A missing interpreter or an unresolvable npm launcher must be reported as a failed
+        # command, so the build gate fails it and records the reason instead of crashing.
+        return False, f"could not start {' '.join(command)}: {exc}"
     detail = ((result.stdout or "") + "\n" + (result.stderr or "")).strip()
+    if result.returncode != 0 and not detail:
+        detail = f"command exited with code {result.returncode}: {' '.join(command)}"
     return result.returncode == 0, detail[-2000:]
 
 
@@ -312,6 +353,11 @@ def build_site(session: Session, *, org_id, client_id, content_artifact_id, desi
         env["NEXT_PUBLIC_AGENCY_LEAD_API_URL"] = lead_api_url.rstrip("/")
         env["NEXT_PUBLIC_AGENCY_AGENT_API_URL"] = agent_api_url.rstrip("/")
     try:
+        # A failed `next build` does not always clear the export directory, and the gates below
+        # read `out/` from disk. Without this, a build that fails would leave the previous
+        # client's pages in place and the smoke/SEO/perf checks would pass against a site that
+        # this client never built.
+        shutil.rmtree(TEMPLATE_ROOT / "out", ignore_errors=True)
         passed_build, build_detail = _run(["npm", "run", "build:site"], cwd=REPO_ROOT, env=env)
     finally:
         if original_tokens is not None:

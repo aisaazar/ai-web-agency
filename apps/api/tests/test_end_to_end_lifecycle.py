@@ -10,7 +10,7 @@ from agency.api import create_app
 from agency.db.auth_models import AuditLog
 from agency.db.models import BuildValidation, Deploy, Org, SiteVersion
 from agency.db.session import create_all, create_session_factory
-from agency.providers.deploy import LocalStaticDeploymentProvider
+from agency.providers.deploy import BUILD_COMPLETE_MARKER, LocalStaticDeploymentProvider
 
 
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
@@ -75,6 +75,7 @@ def test_complete_http_lifecycle_to_dashboard_and_rollback(tmp_path, monkeypatch
             "<!doctype html><html><body>E2E</body></html>",
             encoding="utf-8",
         )
+        (destination / BUILD_COMPLETE_MARKER).write_text("ok\n", encoding="utf-8")
         return destination
 
     provider = LocalStaticDeploymentProvider(dist_root=deploy_root)

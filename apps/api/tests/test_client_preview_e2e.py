@@ -19,6 +19,8 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+from agency.providers.deploy import BUILD_COMPLETE_MARKER
+
 import anyio
 import httpx
 import pytest
@@ -162,6 +164,9 @@ def _patch_pipeline_artifacts(tmp_path, monkeypatch):
         (destination / "index.html").write_text(
             "<!doctype html><html><body>preview</body></html>", encoding="utf-8"
         )
+        # A bundle is only usable once it is marked complete; the deploy gate refuses
+        # directories that a half-finished copy could have left behind.
+        (destination / BUILD_COMPLETE_MARKER).write_text("ok\n", encoding="utf-8")
         return destination
 
     provider = LocalStaticDeploymentProvider(dist_root=tmp_path / "deploys")

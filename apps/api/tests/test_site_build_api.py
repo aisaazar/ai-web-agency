@@ -13,6 +13,7 @@ from agency.api import create_app
 from agency.db import create_all, create_session_factory
 from agency.db.models import Artifact, BuildValidation, Client, Org, SiteVersion
 from agency.db.workflow_models import PipelineRun
+from agency.providers.deploy import BUILD_COMPLETE_MARKER
 
 
 FIXTURE = Path(__file__).resolve().parents[3] / "sites" / "_template-base" / "content.dental-clinic.json"
@@ -98,6 +99,7 @@ def _fake_persist_build_bundle(build_hash):
     destination = REPO_ROOT / ".artifacts" / "builds" / build_hash
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "index.html").write_text("<!doctype html><html><body>test</body></html>", encoding="utf-8")
+    (destination / BUILD_COMPLETE_MARKER).write_text("ok\n", encoding="utf-8")
     return destination
 
 

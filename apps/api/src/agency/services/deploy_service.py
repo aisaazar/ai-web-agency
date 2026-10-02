@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from agency.db.models import Approval, Artifact, BuildValidation, Deploy, Site, SiteVersion
 from agency.domain.pipeline_definition import is_valid_transition
-from agency.providers.deploy import BuildBundle, DeploymentProvider, DomainResult
+from agency.providers.deploy import BuildBundle, DeploymentProvider, DomainResult, is_complete_build_directory
 from agency.providers.deployment_registry import get_deployment_provider
 from agency.repositories import PipelineRepository
 from agency.services.audit_service import record_audit
@@ -127,7 +127,9 @@ def _supersede_live_deploys(session: Session, *, org_id, site_id) -> None:
 
 def _bundle_for_version(version: SiteVersion) -> BuildBundle:
     output_dir = BUILD_BUNDLES_ROOT / version.build_hash
-    if not output_dir.is_dir():
+    # A build bundle is only usable if it was completely written. An interrupted copy leaves a
+    # directory that exists but is missing pages, and publishing it would put a broken site live.
+    if not is_complete_build_directory(output_dir):
         raise DeployError(f"immutable build bundle not found for build_hash {version.build_hash}")
     return BuildBundle(build_hash=version.build_hash, output_dir=output_dir)
 
