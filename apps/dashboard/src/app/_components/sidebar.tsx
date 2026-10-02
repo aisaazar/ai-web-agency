@@ -30,6 +30,7 @@ const nav: NavItem[] = [
   { href: "/artifacts", label: "Artifacts", icon: <svg {...iconProps}><path d="M6 3h9l3 3v15H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></svg> },
   { href: "/deployments", label: "Deployments", icon: <svg {...iconProps}><path d="M12 3v12M8 7l4-4 4 4M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg> },
   { href: "/leads", label: "Leads", icon: <svg {...iconProps}><path d="M4 4h16v13H5l-1 3z" /><path d="M8 8h8M8 12h5" /></svg> },
+  { href: "/prospects", label: "Prospects", icon: <svg {...iconProps}><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4M11 7v8M8 11h6" /></svg> },
   { href: "/costs", label: "LLM costs", icon: <svg {...iconProps}><circle cx="12" cy="12" r="8" /><path d="M14.5 8.5c-.7-.5-1.6-.8-2.5-.8-1.5 0-2.7.8-2.7 1.9s1.1 1.7 2.7 2c1.6.3 2.7.9 2.7 2s-1.2 2-2.7 2c-.9 0-1.8-.3-2.5-.8M12 6v12" /></svg> },
   { href: "/audit", label: "Audit log", icon: <svg {...iconProps}><circle cx="12" cy="12" r="8" /><path d="M12 8v4l2.5 2" /></svg> },
 ];

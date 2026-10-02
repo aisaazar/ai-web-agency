@@ -21,6 +21,7 @@ from agency.api.dashboard import build_router as build_dashboard_router
 from agency.api.design import build_router as build_design_router
 from agency.api.intake import build_router as build_intake_router
 from agency.api.leads import build_router as build_leads_router
+from agency.api.prospects import build_router as build_prospects_router
 from agency.api.publish import build_router as build_publish_router
 from agency.api.research import build_router as build_research_router
 from agency.db.session import create_all, create_session_factory
@@ -174,6 +175,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.include_router(build_publish_router(session_factory))
     app.include_router(build_deploy_router(session_factory))
     app.include_router(build_leads_router(session_factory))
+    app.include_router(build_prospects_router(session_factory))
     app.include_router(build_dashboard_router(session_factory))
     return app
 

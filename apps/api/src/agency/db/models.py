@@ -121,6 +121,23 @@ class Deploy(Base, UUIDMixin, TimestampMixin, OrgScopedMixin):
     url: Mapped[str | None] = mapped_column(String(500))
 
 
+class Prospect(Base, UUIDMixin, TimestampMixin, OrgScopedMixin):
+    __tablename__ = "prospects"
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    city: Mapped[str | None] = mapped_column(String(120))
+    country: Mapped[str] = mapped_column(String(8), default="DE", nullable=False)
+    website_url: Mapped[str | None] = mapped_column(String(500))
+    source_url: Mapped[str | None] = mapped_column(String(500))
+    source_kind: Mapped[str] = mapped_column(String(40), default="manual", nullable=False)
+    contactability: Mapped[str] = mapped_column(String(32), default="unknown", nullable=False)
+    website_status: Mapped[str] = mapped_column(String(16), default="unknown", nullable=False)
+    fit_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    opportunity_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), default="new", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+
+
 class LeadSubmission(Base, UUIDMixin, TimestampMixin, OrgScopedMixin):
     __tablename__ = "lead_submissions"
     site_id: Mapped[str] = mapped_column(ForeignKey("sites.id"), nullable=False, index=True)
