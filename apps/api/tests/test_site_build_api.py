@@ -488,3 +488,24 @@ def test_site_build_failure_persists_diagnostics(tmp_path, monkeypatch):
         BuildValidation.site_version_id == versions[0].id
     ).count() == 11
     session.close()
+
+
+def test_build_runner_decodes_utf8_output_independent_of_machine_locale(tmp_path):
+    """The site build emits UTF-8, so the runner must not depend on the console codepage.
+
+    On a cp1252 machine the Next.js route table can contain multi-byte box-drawing characters;
+    this regression keeps the failure diagnosable instead of surfacing as an opaque HTTP 500.
+    """
+    import os
+    import sys
+
+    from agency.services.site_build_service import _run
+
+    marker = "\u2500\u00e4\u00f6\u00fc preview-art-direction"
+    ok, detail = _run(
+        [sys.executable, "-c", f"print({marker!r})"],
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+    )
+    assert ok is True
+    assert marker in detail
