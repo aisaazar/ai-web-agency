@@ -24,6 +24,7 @@ from agency.api.leads import build_router as build_leads_router
 from agency.api.prospects import build_router as build_prospects_router
 from agency.api.publish import build_router as build_publish_router
 from agency.api.research import build_router as build_research_router
+from agency.api.review import build_router as build_review_router
 from agency.db.session import create_all, create_session_factory
 from agency.services.csrf_service import CSRF_COOKIE, CSRF_HEADER, valid_csrf_token
 from agency.services.rate_limit_service import RateLimitError, enforce
@@ -176,6 +177,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.include_router(build_deploy_router(session_factory))
     app.include_router(build_leads_router(session_factory))
     app.include_router(build_prospects_router(session_factory))
+    app.include_router(build_review_router(session_factory))
     app.include_router(build_dashboard_router(session_factory))
     return app
 

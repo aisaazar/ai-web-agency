@@ -25,12 +25,20 @@ def _strings(value: object) -> list[str]:
     return []
 
 
-def generate_content(session: Session, *, org_id, client_id, payload: dict) -> Artifact:
+def generate_content(
+    session: Session,
+    *,
+    org_id,
+    client_id,
+    payload: dict,
+    revision_number: int = 1,
+    archive_previous: Artifact | None = None,
+) -> Artifact:
     client = session.scalar(select(Client).where(Client.id == client_id, Client.org_id == org_id))
     if client is None:
         raise ContentGenerationError("client not found")
     pipeline = PipelineRepository(session, org_id).latest_for_client(client.id)
-    if pipeline is None or pipeline.state != "RESEARCH_APPROVED":
+    if pipeline is None or pipeline.state not in {"RESEARCH_APPROVED", "CONTENT_GENERATING"}:
         raise ContentGenerationError("client is not ready for content generation")
 
     approved_fact_keys = set(session.scalars(select(ClientFact.key).where(
@@ -62,13 +70,19 @@ def generate_content(session: Session, *, org_id, client_id, payload: dict) -> A
     if facts_artifact is None:
         raise ContentGenerationError("approved facts artifact not found for client")
 
-    pipeline.state = transition(pipeline.state, "CONTENT_GENERATING").to_state
+    if pipeline.state == "RESEARCH_APPROVED":
+        pipeline.state = transition(pipeline.state, "CONTENT_GENERATING").to_state
+    if archive_previous is not None and archive_previous.is_active:
+        stored = session.get(Artifact, archive_previous.id)
+        if stored is not None and stored.is_active:
+            stored.is_active = False
+            session.flush()
     artifact = Artifact(
         org_id=org_id,
         artifact_type="content_model",
         schema_version=validated.content_schema_version,
         payload_json=validated.model_dump(mode="json"),
-        revision=1,
+        revision=revision_number,
         input_artifact_id=facts_artifact.id,
         is_active=True,
     )

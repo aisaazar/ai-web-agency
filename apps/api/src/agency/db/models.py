@@ -160,3 +160,23 @@ class LeadEvent(Base, UUIDMixin, TimestampMixin, OrgScopedMixin):
     to_status: Mapped[str] = mapped_column(String(32), nullable=False)
     actor: Mapped[str] = mapped_column(String(255), nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
+
+
+class ChangeRequest(Base, UUIDMixin, TimestampMixin, OrgScopedMixin):
+    """Client-requested edit on a specific, immutable site version.
+
+    ``site_version_id`` and ``build_hash`` are pinned at creation time so an approval or
+    publish can never silently attach to a different revision. Only the lineage columns
+    (``resulting_content_artifact_id`` / ``resulting_build_hash``) are filled in as the
+    review loop progresses.
+    """
+    __tablename__ = "change_requests"
+    client_id: Mapped[str] = mapped_column(ForeignKey("clients.id"), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(ForeignKey("sites.id"), nullable=False, index=True)
+    site_version_id: Mapped[str] = mapped_column(ForeignKey("site_versions.id"), nullable=False, index=True)
+    build_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    requested_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="open", nullable=False)
+    resulting_content_artifact_id: Mapped[str | None] = mapped_column(ForeignKey("artifacts.id"))
+    resulting_build_hash: Mapped[str | None] = mapped_column(String(128))

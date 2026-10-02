@@ -23,7 +23,9 @@ class AIContentGenerationError(ValueError):
 
 # A FAILED run is retryable: the failed attempt never persisted a content artifact, so
 # re-running the same step is the only recovery path (ALLOWED_TRANSITIONS["FAILED"]).
-CONTENT_READY_STATES = frozenset({"RESEARCH_APPROVED", "FAILED"})
+# CONTENT_GENERATING is allowed when the change-request service pre-transitioned the
+# pipeline (PREVIEW_READY -> CONTENT_GENERATING) before delegating to this function.
+CONTENT_READY_STATES = frozenset({"RESEARCH_APPROVED", "FAILED", "CONTENT_GENERATING"})
 
 
 def _mark_failed(session: Session, *, pipeline, org_id, client_id, reason: str) -> None:
@@ -99,6 +101,8 @@ def generate_content_with_llm(
     instruction: str | None = None,
     provider_name: str | None = None,
     max_retries: int = 1,
+    revision_number: int = 1,
+    archive_previous: Artifact | None = None,
 ) -> Artifact:
     client = session.scalar(select(Client).where(Client.id == client_id, Client.org_id == org_id))
     if client is None:
@@ -141,7 +145,13 @@ def generate_content_with_llm(
         ).order_by(ResearchSource.created_at.desc()).limit(10)))
 
     system, user = _build_prompt(client, facts, sources, instruction)
-    pipeline.state = transition(pipeline.state, "CONTENT_GENERATING").to_state
+    if pipeline.state in {"RESEARCH_APPROVED", "FAILED"}:
+        pipeline.state = transition(pipeline.state, "CONTENT_GENERATING").to_state
+    if archive_previous is not None and archive_previous.is_active:
+        stored = session.get(Artifact, archive_previous.id)
+        if stored is not None and stored.is_active:
+            stored.is_active = False
+            session.flush()
 
     last_error = ""
     for attempt in range(max_retries + 1):
@@ -194,7 +204,7 @@ def generate_content_with_llm(
             artifact_type="content_model",
             schema_version=validated.content_schema_version,
             payload_json=validated.model_dump(mode="json"),
-            revision=1,
+            revision=revision_number,
             input_artifact_id=facts_artifact.id,
             is_active=True,
         )

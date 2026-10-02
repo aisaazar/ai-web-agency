@@ -8,7 +8,8 @@
     "prebuild": "node scripts/build-design-tokens.mjs && node scripts/gate/validate-content.mjs",
     "build": "next build && node scripts/write-security-headers.mjs",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate": "node scripts/gate/validate-content.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",
@@ -28,4 +29,4 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   }
-} 
+}
