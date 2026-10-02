@@ -25,6 +25,7 @@ const iconProps = {
 const nav: NavItem[] = [
   { href: "/", label: "Overview", icon: <svg {...iconProps}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg> },
   { href: "/clients", label: "Clients", icon: <svg {...iconProps}><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg> },
+  { href: "/templates", label: "Templates", icon: <svg {...iconProps}><rect x="3" y="4" width="7" height="7" rx="1" /><rect x="14" y="4" width="7" height="7" rx="1" /><rect x="3" y="13" width="7" height="7" rx="1" /><rect x="14" y="13" width="7" height="7" rx="1" /></svg> },
   { href: "/pipeline", label: "Pipeline", icon: <svg {...iconProps}><path d="M4 6h16M7 12h10M10 18h4" /><path d="M4 6l3 6v6h10v-6l3-6" /></svg> },
   { href: "/artifacts", label: "Artifacts", icon: <svg {...iconProps}><path d="M6 3h9l3 3v15H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></svg> },
   { href: "/deployments", label: "Deployments", icon: <svg {...iconProps}><path d="M12 3v12M8 7l4-4 4 4M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" /></svg> },

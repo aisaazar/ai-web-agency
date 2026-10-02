@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
     );
   }
   const validFacts = facts.filter((fact): fact is NonNullable<typeof fact> => fact !== null);
+  const presetId = String(form.get("preset_id") ?? "health").trim();
+  if (!["health", "corporate", "warm"].includes(presetId)) {
+    return NextResponse.json({ detail: "Invalid design preset" }, { status: 400 });
+  }
 
   const payload = {
     org_id: ORG_ID,
@@ -47,7 +51,10 @@ export async function POST(request: NextRequest) {
     jurisdiction: String(form.get("jurisdiction") ?? "DE").trim(),
     locale: String(form.get("locale") ?? "de-DE").trim(),
     existing_url: String(form.get("existing_url") ?? "").trim() || null,
-    facts: validFacts,
+    facts: [
+      ...validFacts,
+      { key: "selected_preset_id", value: presetId, value_type: "text", source_kind: "dashboard", source_ref: "template-gallery", confidence: 1 },
+    ],
   };
 
   let upstream: Response;

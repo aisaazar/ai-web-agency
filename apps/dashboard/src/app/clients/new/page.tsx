@@ -3,11 +3,14 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; preset?: string }>;
 };
 
 export default async function NewClientPage({ searchParams }: Props) {
   const query = await searchParams;
+  const selectedPreset = ["health", "corporate", "warm"].includes(query.preset ?? "")
+    ? query.preset!
+    : "health";
 
   return (
     <>
@@ -25,6 +28,7 @@ export default async function NewClientPage({ searchParams }: Props) {
           <label>Client name<input name="client_name" required maxLength={200} /></label>
           <label>Client slug<input name="client_slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={120} /></label>
           <label>Category<select name="category" defaultValue="dental"><option value="dental">Dental</option><option value="health">Health</option><option value="corporate">Corporate</option></select></label>
+          <label>Visual style<select name="preset_id" defaultValue={selectedPreset}><option value="health">Health / Praxis — clean medical</option><option value="corporate">Corporate / Professional — executive</option><option value="warm">Warm / Human — boutique</option></select><span className="muted">This selection is carried into the design stage.</span></label>
           <div className="formGrid">
             <label>Jurisdiction<input name="jurisdiction" defaultValue="DE" required maxLength={8} /></label>
             <label>Locale<input name="locale" defaultValue="de-DE" required maxLength={16} /></label>

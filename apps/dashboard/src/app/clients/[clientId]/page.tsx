@@ -31,7 +31,7 @@ function ActionForm({ action, clientId, hidden = {}, children }: {
   );
 }
 
-function DesignActionForm({ clientId, contentArtifactId }: { clientId: string; contentArtifactId: string }) {
+function DesignActionForm({ clientId, contentArtifactId, selectedPreset }: { clientId: string; contentArtifactId: string; selectedPreset: "health" | "corporate" | "warm" }) {
   return (
     <form action={`/api/clients/${clientId}/action`} method="post">
       <input type="hidden" name="action" value="design" />
@@ -39,7 +39,7 @@ function DesignActionForm({ clientId, contentArtifactId }: { clientId: string; c
       <input type="hidden" name="artifact_id" value={contentArtifactId} />
       <label>
         Design preset
-        <select name="preset_id" defaultValue="health">
+        <select name="preset_id" defaultValue={selectedPreset}>
           <option value="health">Health / Praxis</option>
           <option value="corporate">Corporate / Professional</option>
           <option value="warm">Warm / Human</option>
@@ -63,6 +63,8 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
   const content = findArtifact(detail, "content_model");
   const design = findArtifact(detail, "design_plan");
   const build = findArtifact(detail, "site_build");
+  const selectedPresetFact = detail.facts.find((fact) => fact.key === "selected_preset_id")?.value;
+  const selectedPreset = (selectedPresetFact === "corporate" || selectedPresetFact === "warm" ? selectedPresetFact : "health") as "health" | "corporate" | "warm";
   const siteVersion = detail.siteVersions[0];
   const latestPreview = detail.deployments.find(
     (item) => item.environment === "preview" && item.siteVersionId === siteVersion?.id,
@@ -88,7 +90,7 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
       if (content) action = <ActionForm action="approve-content" clientId={clientId} hidden={{ artifact_id: content.id }}>Approve content</ActionForm>;
       break;
     case "CONTENT_APPROVED":
-      if (content) action = <DesignActionForm clientId={clientId} contentArtifactId={content.id} />;
+      if (content) action = <DesignActionForm clientId={clientId} contentArtifactId={content.id} selectedPreset={selectedPreset} />;
       break;
     case "DESIGN_APPROVED":
       if (content && design) action = <ActionForm action="build" clientId={clientId} hidden={{ content_artifact_id: content.id, design_artifact_id: design.id }}>Build site</ActionForm>;
