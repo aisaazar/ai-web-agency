@@ -55,6 +55,7 @@ Turnstile tokens expire and are single-use, so failed or expired submissions mus
 ## Release discipline
 Do not publish until the exact build hash has passed the build gate and the human approval workflow for preview/publish is complete.
 The dashboard/API deployment actions are `/v1/deploys/preview`, `/v1/deploys/publish`, `/v1/deploys/rollback`, `/v1/deploys/domain`, and `/v1/deploys/logs`.
+The client review actions are `/v1/review/request`, `/v1/review/revision`, `/v1/review/revision/llm`, and `/v1/review/resolve`. A change request may only be opened against the exact site version that is currently built and already has a ready preview, so a review can never attach to a stale or unreviewed build. Resolving pins the resulting build hash back to the request.
 Domain attachment requires an existing live deployment and normalizes a DNS hostname before calling the provider. Deployment logs are client-scoped and cannot be read across client boundaries.
 
 ## Production hardening

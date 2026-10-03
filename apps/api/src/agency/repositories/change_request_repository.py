@@ -1,5 +1,7 @@
 """Tenant-scoped change-request persistence."""
 
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -20,10 +22,11 @@ class ChangeRequestRepository:
         )
 
     def for_client(self, client_id) -> list[ChangeRequest]:
+        # `client_id` is a `Uuid` column: bind a real UUID so SQLAlchemy's Uuid type can encode it.
         return list(self.session.scalars(
             select(ChangeRequest).where(
                 ChangeRequest.org_id == self.org_id,
-                ChangeRequest.client_id == str(client_id),
+                ChangeRequest.client_id == UUID(str(client_id)),
             ).order_by(ChangeRequest.created_at.desc())
         ))
 

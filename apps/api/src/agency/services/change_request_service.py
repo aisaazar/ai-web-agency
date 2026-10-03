@@ -82,7 +82,10 @@ def _preview_ready_for_version(session: Session, *, org_id, version: SiteVersion
 
 def _get_request(session: Session, *, org_id, client_id, change_request_id) -> ChangeRequest:
     change_request = ChangeRequestRepository(session, org_id).get(change_request_id)
-    if change_request is None or change_request.client_id != str(client_id):
+    # `Client.id` is a SQLAlchemy `Uuid` column, so the loaded attribute is a `uuid.UUID` even though
+    # the model is annotated as `str`. Comparing it to `str(client_id)` therefore never matches and
+    # every follow-up call on a change request failed as "not found". Normalise both sides.
+    if change_request is None or str(change_request.client_id) != str(client_id):
         raise ChangeRequestError("change request not found for client")
     return change_request
 
