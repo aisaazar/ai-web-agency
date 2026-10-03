@@ -1,4 +1,4 @@
-{ 
-  "$schema": "https://openapi.vercel.sh/vercel.json", 
-  "outputDirectory": "sites/_template-base/.next"  
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "sites/_template-base/.next"
 }
